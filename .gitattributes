@@ -1,0 +1,2 @@
+public/title26_graph_2025.json filter=lfs diff=lfs merge=lfs -text
+public/*.json filter=lfs diff=lfs merge=lfs -text

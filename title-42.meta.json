@@ -1,0 +1,17 @@
+{
+  "title": "42",
+  "version": 1,
+  "format": "split-graph",
+  "parts": [
+    {
+      "file": "title-42.part-01.json",
+      "nodes": 24004,
+      "links": 105866
+    },
+    {
+      "file": "title-42.part-02.json",
+      "nodes": 24003,
+      "links": 104834
+    }
+  ]
+}

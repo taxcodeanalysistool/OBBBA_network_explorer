@@ -37,11 +37,55 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§1. Words denoting number, gender, and so forth",
       "display_label": "[1 U.S.C. 1]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "In determining the meaning of any Act of Congress, unless the context indicates otherwise— words importing the singular include and apply to several persons, parties, or things; words importing the plural include the singular; words importing the masculine gender include the feminine as well; words used in the present tense include the future as well as the present; the words \"insane\" and \"insane person\" shall include every idiot, insane person, and person non compos mentis; the words \"person\" and \"whoever\" include corporations, companies, associations, firms, partnerships, societies, and joint stock companies, as well as individuals; \"officer\" includes any person authorized by law to perform the duties of the office; \"signature\" or \"subscription\" includes a mark when the person making the same intended it as such; \"oath\" includes affirmation, and \"sworn\" includes affirmed; \"writing\" includes printing and typewriting and reproductions of visual symbols by photographing, multigraphing, mimeographing, manifolding, or otherwise.",
+        "adjectives": [
+          "singular",
+          "several",
+          "singular",
+          "masculine",
+          "present",
+          "insane",
+          "insane",
+          "insane",
+          "compos",
+          "joint",
+          "same",
+          "such",
+          "visual"
+        ],
+        "verbs": [
+          "determining",
+          "indicates",
+          "importing",
+          "include",
+          "apply",
+          "importing",
+          "include",
+          "importing",
+          "include",
+          "used",
+          "include",
+          "include",
+          "include",
+          "includes",
+          "authorized",
+          "perform",
+          "includes",
+          "making",
+          "intended",
+          "includes",
+          "sworn",
+          "includes",
+          "affirmed",
+          "includes"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-2",
@@ -49,11 +93,22 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§2. \"County\" as including \"parish\", and so forth",
       "display_label": "[1 U.S.C. 2]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"county\" includes a parish, or any other equivalent subdivision of a State or Territory of the United States.",
+        "adjectives": [
+          "other",
+          "equivalent"
+        ],
+        "verbs": [
+          "includes",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-3",
@@ -61,11 +116,24 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§3. \"Vessel\" as including all means of water transportation",
       "display_label": "[1 U.S.C. 3]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"vessel\" includes every description of watercraft or other artificial contrivance used, or capable of being used, as a means of transportation on water.",
+        "adjectives": [
+          "other",
+          "artificial",
+          "capable"
+        ],
+        "verbs": [
+          "includes",
+          "used",
+          "used"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-4",
@@ -73,11 +141,24 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§4. \"Vehicle\" as including all means of land transportation",
       "display_label": "[1 U.S.C. 4]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"vehicle\" includes every description of carriage or other artificial contrivance used, or capable of being used, as a means of transportation on land.",
+        "adjectives": [
+          "other",
+          "artificial",
+          "capable"
+        ],
+        "verbs": [
+          "includes",
+          "used",
+          "used"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-5",
@@ -85,11 +166,26 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§5. \"Company\" or \"association\" as including successors and assigns",
       "display_label": "[1 U.S.C. 5]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"company\" or \"association\", when used in reference to a corporation, shall be deemed to embrace the words \"successors and assigns of such company or association\", in like manner as if these last-named words, or words of similar import, were expressed.",
+        "adjectives": [
+          "such",
+          "last",
+          "similar"
+        ],
+        "verbs": [
+          "used",
+          "deemed",
+          "embrace",
+          "named",
+          "expressed"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-6",
@@ -97,11 +193,41 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§6. Limitation of term \"products of American fisheries\"",
       "display_label": "[1 U.S.C. 6]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "Wherever, in the statutes of the United States or in the rulings, regulations, or interpretations of various administrative bureaus and agencies of the United States there appears or may appear the term \"products of American fisheries\" said term shall not include fresh or frozen fish fillets, fresh or frozen fish steaks, or fresh or frozen slices of fish substantially free of bone (including any of the foregoing divided into sections), produced in a foreign country or its territorial waters, in whole or in part with the use of the labor of persons who are not residents of the United States.",
+        "adjectives": [
+          "various",
+          "administrative",
+          "American",
+          "fresh",
+          "fresh",
+          "fresh",
+          "free",
+          "foreign",
+          "territorial",
+          "whole"
+        ],
+        "verbs": [
+          "United",
+          "United",
+          "appears",
+          "appear",
+          "said",
+          "include",
+          "frozen",
+          "frozen",
+          "frozen",
+          "including",
+          "divided",
+          "produced",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-7",
@@ -156,12 +282,22 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§7. Marriage",
       "subsection": "(b)",
       "display_label": "[1 U.S.C. 7(b)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(b) In this section, the term \"State\" means a State, the District of Columbia, the Commonwealth of Puerto Rico, or any other territory or possession of the United States.",
+        "adjectives": [
+          "other"
+        ],
+        "verbs": [
+          "means",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-7_subsection-c",
@@ -195,11 +331,16 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "display_label": "[1 U.S.C. 8]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "",
+        "adjectives": null,
+        "verbs": null
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-8_subsection-a",
@@ -207,12 +348,27 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "subsection": "(a)",
       "display_label": "[1 U.S.C. 8(a)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(a) In determining the meaning of any Act of Congress, or of any ruling, regulation, or interpretation of the various administrative bureaus and agencies of the United States, the words \"person\", \"human being\", \"child\", and \"individual\", shall include every infant member of the species homo sapiens who is born alive at any stage of development.",
+        "adjectives": [
+          "various",
+          "administrative",
+          "human",
+          "alive"
+        ],
+        "verbs": [
+          "determining",
+          "United",
+          "include",
+          "born"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-8_subsection-b",
@@ -220,12 +376,36 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "subsection": "(b)",
       "display_label": "[1 U.S.C. 8(b)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(b) As used in this section, the term \"born alive\", with respect to a member of the species homo sapiens, means the complete expulsion or extraction from his or her mother of that member, at any stage of development, who after such expulsion or extraction breathes or has a beating heart, pulsation of the umbilical cord, or definite movement of voluntary muscles, regardless of whether the umbilical cord has been cut, and regardless of whether the expulsion or extraction occurs as a result of natural or induced labor, cesarean section, or induced abortion.",
+        "adjectives": [
+          "alive",
+          "complete",
+          "such",
+          "umbilical",
+          "definite",
+          "voluntary",
+          "umbilical",
+          "natural"
+        ],
+        "verbs": [
+          "used",
+          "born",
+          "means",
+          "breathes",
+          "has",
+          "cut",
+          "occurs",
+          "induced",
+          "induced"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-8_subsection-c",
@@ -233,12 +413,31 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "subsection": "(c)",
       "display_label": "[1 U.S.C. 8(c)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(c) Nothing in this section shall be construed to affirm, deny, expand, or contract any legal status or legal right applicable to any member of the species homo sapiens at any point prior to being \"born alive\" as defined in this section.",
+        "adjectives": [
+          "legal",
+          "legal",
+          "applicable",
+          "prior",
+          "alive"
+        ],
+        "verbs": [
+          "construed",
+          "affirm",
+          "deny",
+          "expand",
+          "contract",
+          "born",
+          "defined"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2",
@@ -262,11 +461,21 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§101. Enacting clause",
       "display_label": "[1 U.S.C. 101]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The enacting clause of all Acts of Congress shall be in the following form: \"Be it enacted by the Senate and House of Representatives of the United States of America in Congress assembled.\"",
+        "adjectives": null,
+        "verbs": [
+          "following",
+          "enacted",
+          "United",
+          "assembled"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-102",
@@ -274,11 +483,23 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§102. Resolving clause",
       "display_label": "[1 U.S.C. 102]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The resolving clause of all joint resolutions shall be in the following form: \"Resolved by the Senate and House of Representatives of the United States of America in Congress assembled.\"",
+        "adjectives": [
+          "joint",
+          "United"
+        ],
+        "verbs": [
+          "following",
+          "Resolved",
+          "assembled"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-103",
@@ -330,11 +551,23 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§105. Title of appropriation Acts",
       "display_label": "[1 U.S.C. 105]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The style and title of all Acts making appropriations for the support of Government shall be as follows: \"An Act making appropriations (here insert the object) for the year ending September 30 (here insert the calendar year).\"",
+        "adjectives": null,
+        "verbs": [
+          "making",
+          "follows",
+          "making",
+          "insert",
+          "ending",
+          "insert"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-106",
@@ -714,12 +947,53 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§112a. United States Treaties and Other International Agreements; contents; admissibility in evidence",
       "subsection": "(a)",
-      "display_label": "[1 U.S.C. 112a(a)]",
+      "display_label": "[1 U.S.C. 112(a)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(a) The Secretary of State shall cause to be compiled, edited, indexed, and published, beginning as of January 1, 1950, a compilation entitled \"United States Treaties and Other International Agreements,\" which shall contain all treaties to which the United States is a party that have been proclaimed during each calendar year, and all international agreements other than treaties to which the United States is a party that have been signed, proclaimed, or with reference to which any other final formality has been executed, during each calendar year. The said United States Treaties and Other International Agreements shall be legal evidence of the treaties, international agreements other than treaties, and proclamations by the President of such treaties and agreements, therein contained, in all the courts of the United States, the several States, and the Territories and insular possessions of the United States.",
+        "adjectives": [
+          "Other",
+          "International",
+          "United",
+          "international",
+          "other",
+          "United",
+          "other",
+          "final",
+          "United",
+          "Other",
+          "International",
+          "legal",
+          "international",
+          "other",
+          "such",
+          "several",
+          "insular"
+        ],
+        "verbs": [
+          "cause",
+          "compiled",
+          "edited",
+          "indexed",
+          "published",
+          "beginning",
+          "entitled",
+          "United",
+          "contain",
+          "proclaimed",
+          "signed",
+          "proclaimed",
+          "executed",
+          "said",
+          "contained",
+          "United",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-112a_subsection-b",
@@ -1286,12 +1560,98 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§112b. United States international agreements and non-binding instruments; transparency provisions",
       "subsection": "(k)",
-      "display_label": "[1 U.S.C. 112b(k)]",
+      "display_label": "[1 U.S.C. 112(k)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(k) In this section: (1) The term \"appropriate congressional committees\" means— (A) the Committee on Foreign Relations of the Senate; and (B) the Committee on Foreign Affairs of the House of Representatives. (2) The term \"appropriate department or agency\" means the department or agency of the United States Government that negotiates and enters into a qualifying non-binding instrument on behalf of itself or the United States. (3) The term \"intelligence community\" has the meaning given that term in section 3(4) of the National Security Act of 1947 (50 U.S.C. 3003(4)). (4) The term \"international agreement\" includes— (A) any treaty that requires the advice and consent of the Senate, pursuant to article II of the Constitution of the United States; and (B) any other international agreement to which the United States is a party and that is not subject to the advice and consent of the Senate. (5) The term \"qualifying non-binding instrument\"— (A) except as provided in subparagraph (B), means a non-binding instrument that— (i) is or will be under negotiation, is signed or otherwise becomes operative, or is implemented with one or more foreign governments, international organizations, or foreign entities, including non-state actors; and (ii)(I) could reasonably be expected to have a significant impact on the foreign policy of the United States; or (II) is the subject of a written communication from the Chair or Ranking Member of either of the appropriate congressional committees to the Secretary; and (B) does not include any non-binding instrument that is signed or otherwise becomes operative or is implemented pursuant to the authorities relied upon by the Department of Defense, the Armed Forces of the United States, or any element of the intelligence community. (6) The term \"Secretary\" means the Secretary of State. (7)(A) The term \"text\" with respect to an international agreement or qualifying non-binding instrument includes— (i) any annex, appendix, codicil, side agreement, side letter, or any document of similar purpose or function to the aforementioned, regardless of the title of the document, that is entered into contemporaneously and in conjunction with the international agreement or qualifying non-binding instrument; and (ii) any implementing agreement or arrangement, or any document of similar purpose or function to the aforementioned regardless of the title of the document, that is entered into contemporaneously and in conjunction with the international agreement or qualifying non-binding instrument. (B) As used in subparagraph (A), the term \"contemporaneously and in conjunction with\"— (i) shall be construed liberally; and (ii) may not be interpreted to require any action to have occurred simultaneously or on the same day.",
+        "adjectives": [
+          "appropriate",
+          "congressional",
+          "Foreign",
+          "Foreign",
+          "appropriate",
+          "non-binding",
+          "National",
+          "international",
+          "pursuant",
+          "other",
+          "international",
+          "United",
+          "subject",
+          "non-binding",
+          "non-binding",
+          "operative",
+          "more",
+          "foreign",
+          "international",
+          "foreign",
+          "non-state",
+          "significant",
+          "foreign",
+          "appropriate",
+          "congressional",
+          "non-binding",
+          "operative",
+          "pursuant",
+          "Armed",
+          "international",
+          "non-binding",
+          "similar",
+          "aforementioned",
+          "international",
+          "non-binding",
+          "similar",
+          "aforementioned",
+          "international",
+          "non-binding",
+          "same"
+        ],
+        "verbs": [
+          "means",
+          "means",
+          "United",
+          "negotiates",
+          "enters",
+          "qualifying",
+          "United",
+          "has",
+          "given",
+          "includes",
+          "requires",
+          "United",
+          "qualifying",
+          "provided",
+          "means",
+          "signed",
+          "becomes",
+          "implemented",
+          "including",
+          "expected",
+          "have",
+          "United",
+          "written",
+          "include",
+          "signed",
+          "becomes",
+          "implemented",
+          "relied",
+          "United",
+          "means",
+          "includes",
+          "entered",
+          "implementing",
+          "entered",
+          "used",
+          "construed",
+          "interpreted",
+          "require",
+          "occurred"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-112b_subsection-l",
@@ -1342,11 +1702,42 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§113. \"Little and Brown's\" edition of laws and treaties; slip laws; Treaties and Other International Acts Series; admissibility in evidence",
       "display_label": "[1 U.S.C. 113]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The edition of the laws and treaties of the United States, published by Little and Brown, and the publications in slip or pamphlet form of the laws of the United States issued under the authority of the Archivist of the United States, and the Treaties and Other International Acts Series issued under the authority of the Secretary of State shall be competent evidence of the several public and private Acts of Congress, and of the treaties, international agreements other than treaties, and proclamations by the President of such treaties and international agreements other than treaties, as the case may be, therein contained, in all the courts of law and equity and of maritime jurisdiction, and in all the tribunals and public offices of the United States, and of the several States, without any further proof or authentication thereof.",
+        "adjectives": [
+          "Little",
+          "Other",
+          "International",
+          "competent",
+          "several",
+          "public",
+          "private",
+          "international",
+          "other",
+          "such",
+          "international",
+          "other",
+          "maritime",
+          "public",
+          "several",
+          "further"
+        ],
+        "verbs": [
+          "United",
+          "published",
+          "United",
+          "issued",
+          "United",
+          "issued",
+          "contained",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-114",
@@ -1757,12 +2148,19 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 3",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 3—CODE OF LAWS OF UNITED STATES AND SUPPLEMENTS; DISTRICT OF COLUMBIA CODE AND SUPPLEMENTS",
+      "section": "§204. Codes and Supplements as evidence of the laws of United States and District of Columbia; citation of Codes and Supplements",
       "subsection": "(c)",
       "display_label": "[1 U.S.C. 204(c)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(c) District of Columbia Code; citation.—The Code of the District of Columbia may be cited as \"D.C. Code\".",
+        "adjectives": null,
+        "verbs": [
+          "cited"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-3_section-204_subsection-d",
@@ -1770,12 +2168,24 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 3",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 3—CODE OF LAWS OF UNITED STATES AND SUPPLEMENTS; DISTRICT OF COLUMBIA CODE AND SUPPLEMENTS",
+      "section": "§204. Codes and Supplements as evidence of the laws of United States and District of Columbia; citation of Codes and Supplements",
       "subsection": "(d)",
       "display_label": "[1 U.S.C. 204(d)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(d) Supplements to Codes; citation.—Supplements to the Code of Laws of the United States and to the Code of the District of Columbia may be cited, respectively, as \"U.S.C., Sup.Â Â \", and \"D.C. Code, Sup.Â Â \", the blank in each case being filled with Roman figures denoting the number of the supplement.",
+        "adjectives": [
+          "United",
+          "Roman"
+        ],
+        "verbs": [
+          "cited",
+          "filled",
+          "denoting"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-3_section-204_subsection-e",
@@ -1783,12 +2193,28 @@
       "node_type": "index",
       "time": "pre-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 3",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 3—CODE OF LAWS OF UNITED STATES AND SUPPLEMENTS; DISTRICT OF COLUMBIA CODE AND SUPPLEMENTS",
+      "section": "§204. Codes and Supplements as evidence of the laws of United States and District of Columbia; citation of Codes and Supplements",
       "subsection": "(e)",
       "display_label": "[1 U.S.C. 204(e)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(e) New edition of Codes; citation.—New editions of each of such codes may be cited, respectively, as \"U.S.C.,Â Â ed.\", and \"D.C. Code, Â Â Â Â ed.\", the blank in each case being filled with figures denoting the last year the legislation of which is included in whole or in part.",
+        "adjectives": [
+          "New",
+          "New",
+          "such",
+          "last",
+          "whole"
+        ],
+        "verbs": [
+          "cited",
+          "filled",
+          "denoting",
+          "included"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-3_section-205",
@@ -2121,11 +2547,55 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§1. Words denoting number, gender, and so forth",
       "display_label": "[1 U.S.C. 1]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "In determining the meaning of any Act of Congress, unless the context indicates otherwise— words importing the singular include and apply to several persons, parties, or things; words importing the plural include the singular; words importing the masculine gender include the feminine as well; words used in the present tense include the future as well as the present; the words \"insane\" and \"insane person\" shall include every idiot, insane person, and person non compos mentis; the words \"person\" and \"whoever\" include corporations, companies, associations, firms, partnerships, societies, and joint stock companies, as well as individuals; \"officer\" includes any person authorized by law to perform the duties of the office; \"signature\" or \"subscription\" includes a mark when the person making the same intended it as such; \"oath\" includes affirmation, and \"sworn\" includes affirmed; \"writing\" includes printing and typewriting and reproductions of visual symbols by photographing, multigraphing, mimeographing, manifolding, or otherwise.",
+        "adjectives": [
+          "singular",
+          "several",
+          "singular",
+          "masculine",
+          "present",
+          "insane",
+          "insane",
+          "insane",
+          "compos",
+          "joint",
+          "same",
+          "such",
+          "visual"
+        ],
+        "verbs": [
+          "determining",
+          "indicates",
+          "importing",
+          "include",
+          "apply",
+          "importing",
+          "include",
+          "importing",
+          "include",
+          "used",
+          "include",
+          "include",
+          "include",
+          "includes",
+          "authorized",
+          "perform",
+          "includes",
+          "making",
+          "intended",
+          "includes",
+          "sworn",
+          "includes",
+          "affirmed",
+          "includes"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-2",
@@ -2133,11 +2603,22 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§2. \"County\" as including \"parish\", and so forth",
       "display_label": "[1 U.S.C. 2]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"county\" includes a parish, or any other equivalent subdivision of a State or Territory of the United States.",
+        "adjectives": [
+          "other",
+          "equivalent"
+        ],
+        "verbs": [
+          "includes",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-3",
@@ -2145,11 +2626,24 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§3. \"Vessel\" as including all means of water transportation",
       "display_label": "[1 U.S.C. 3]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"vessel\" includes every description of watercraft or other artificial contrivance used, or capable of being used, as a means of transportation on water.",
+        "adjectives": [
+          "other",
+          "artificial",
+          "capable"
+        ],
+        "verbs": [
+          "includes",
+          "used",
+          "used"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-4",
@@ -2157,11 +2651,24 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§4. \"Vehicle\" as including all means of land transportation",
       "display_label": "[1 U.S.C. 4]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"vehicle\" includes every description of carriage or other artificial contrivance used, or capable of being used, as a means of transportation on land.",
+        "adjectives": [
+          "other",
+          "artificial",
+          "capable"
+        ],
+        "verbs": [
+          "includes",
+          "used",
+          "used"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-5",
@@ -2169,11 +2676,26 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§5. \"Company\" or \"association\" as including successors and assigns",
       "display_label": "[1 U.S.C. 5]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The word \"company\" or \"association\", when used in reference to a corporation, shall be deemed to embrace the words \"successors and assigns of such company or association\", in like manner as if these last-named words, or words of similar import, were expressed.",
+        "adjectives": [
+          "such",
+          "last",
+          "similar"
+        ],
+        "verbs": [
+          "used",
+          "deemed",
+          "embrace",
+          "named",
+          "expressed"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-6",
@@ -2181,11 +2703,41 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§6. Limitation of term \"products of American fisheries\"",
       "display_label": "[1 U.S.C. 6]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "Wherever, in the statutes of the United States or in the rulings, regulations, or interpretations of various administrative bureaus and agencies of the United States there appears or may appear the term \"products of American fisheries\" said term shall not include fresh or frozen fish fillets, fresh or frozen fish steaks, or fresh or frozen slices of fish substantially free of bone (including any of the foregoing divided into sections), produced in a foreign country or its territorial waters, in whole or in part with the use of the labor of persons who are not residents of the United States.",
+        "adjectives": [
+          "various",
+          "administrative",
+          "American",
+          "fresh",
+          "fresh",
+          "fresh",
+          "free",
+          "foreign",
+          "territorial",
+          "whole"
+        ],
+        "verbs": [
+          "United",
+          "United",
+          "appears",
+          "appear",
+          "said",
+          "include",
+          "frozen",
+          "frozen",
+          "frozen",
+          "including",
+          "divided",
+          "produced",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-7",
@@ -2240,12 +2792,22 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§7. Marriage",
       "subsection": "(b)",
       "display_label": "[1 U.S.C. 7(b)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(b) In this section, the term \"State\" means a State, the District of Columbia, the Commonwealth of Puerto Rico, or any other territory or possession of the United States.",
+        "adjectives": [
+          "other"
+        ],
+        "verbs": [
+          "means",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-7_subsection-c",
@@ -2279,11 +2841,16 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "display_label": "[1 U.S.C. 8]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "",
+        "adjectives": null,
+        "verbs": null
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-8_subsection-a",
@@ -2291,12 +2858,27 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "subsection": "(a)",
       "display_label": "[1 U.S.C. 8(a)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(a) In determining the meaning of any Act of Congress, or of any ruling, regulation, or interpretation of the various administrative bureaus and agencies of the United States, the words \"person\", \"human being\", \"child\", and \"individual\", shall include every infant member of the species homo sapiens who is born alive at any stage of development.",
+        "adjectives": [
+          "various",
+          "administrative",
+          "human",
+          "alive"
+        ],
+        "verbs": [
+          "determining",
+          "United",
+          "include",
+          "born"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-8_subsection-b",
@@ -2304,12 +2886,36 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "subsection": "(b)",
       "display_label": "[1 U.S.C. 8(b)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(b) As used in this section, the term \"born alive\", with respect to a member of the species homo sapiens, means the complete expulsion or extraction from his or her mother of that member, at any stage of development, who after such expulsion or extraction breathes or has a beating heart, pulsation of the umbilical cord, or definite movement of voluntary muscles, regardless of whether the umbilical cord has been cut, and regardless of whether the expulsion or extraction occurs as a result of natural or induced labor, cesarean section, or induced abortion.",
+        "adjectives": [
+          "alive",
+          "complete",
+          "such",
+          "umbilical",
+          "definite",
+          "voluntary",
+          "umbilical",
+          "natural"
+        ],
+        "verbs": [
+          "used",
+          "born",
+          "means",
+          "breathes",
+          "has",
+          "cut",
+          "occurs",
+          "induced",
+          "induced"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-1_section-8_subsection-c",
@@ -2317,12 +2923,31 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 1",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 1—RULES OF CONSTRUCTION",
+      "section": "§8. \"Person\", \"human being\", \"child\", and \"individual\" as including born-alive infant",
       "subsection": "(c)",
       "display_label": "[1 U.S.C. 8(c)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(c) Nothing in this section shall be construed to affirm, deny, expand, or contract any legal status or legal right applicable to any member of the species homo sapiens at any point prior to being \"born alive\" as defined in this section.",
+        "adjectives": [
+          "legal",
+          "legal",
+          "applicable",
+          "prior",
+          "alive"
+        ],
+        "verbs": [
+          "construed",
+          "affirm",
+          "deny",
+          "expand",
+          "contract",
+          "born",
+          "defined"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2",
@@ -2346,11 +2971,21 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§101. Enacting clause",
       "display_label": "[1 U.S.C. 101]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The enacting clause of all Acts of Congress shall be in the following form: \"Be it enacted by the Senate and House of Representatives of the United States of America in Congress assembled.\"",
+        "adjectives": null,
+        "verbs": [
+          "following",
+          "enacted",
+          "United",
+          "assembled"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-102",
@@ -2358,11 +2993,23 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§102. Resolving clause",
       "display_label": "[1 U.S.C. 102]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The resolving clause of all joint resolutions shall be in the following form: \"Resolved by the Senate and House of Representatives of the United States of America in Congress assembled.\"",
+        "adjectives": [
+          "joint",
+          "United"
+        ],
+        "verbs": [
+          "following",
+          "Resolved",
+          "assembled"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-103",
@@ -2414,11 +3061,23 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§105. Title of appropriation Acts",
       "display_label": "[1 U.S.C. 105]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The style and title of all Acts making appropriations for the support of Government shall be as follows: \"An Act making appropriations (here insert the object) for the year ending September 30 (here insert the calendar year).\"",
+        "adjectives": null,
+        "verbs": [
+          "making",
+          "follows",
+          "making",
+          "insert",
+          "ending",
+          "insert"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-106",
@@ -2798,12 +3457,53 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§112a. United States Treaties and Other International Agreements; contents; admissibility in evidence",
       "subsection": "(a)",
-      "display_label": "[1 U.S.C. 112a(a)]",
+      "display_label": "[1 U.S.C. 112(a)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(a) The Secretary of State shall cause to be compiled, edited, indexed, and published, beginning as of January 1, 1950, a compilation entitled \"United States Treaties and Other International Agreements,\" which shall contain all treaties to which the United States is a party that have been proclaimed during each calendar year, and all international agreements other than treaties to which the United States is a party that have been signed, proclaimed, or with reference to which any other final formality has been executed, during each calendar year. The said United States Treaties and Other International Agreements shall be legal evidence of the treaties, international agreements other than treaties, and proclamations by the President of such treaties and agreements, therein contained, in all the courts of the United States, the several States, and the Territories and insular possessions of the United States.",
+        "adjectives": [
+          "Other",
+          "International",
+          "United",
+          "international",
+          "other",
+          "United",
+          "other",
+          "final",
+          "United",
+          "Other",
+          "International",
+          "legal",
+          "international",
+          "other",
+          "such",
+          "several",
+          "insular"
+        ],
+        "verbs": [
+          "cause",
+          "compiled",
+          "edited",
+          "indexed",
+          "published",
+          "beginning",
+          "entitled",
+          "United",
+          "contain",
+          "proclaimed",
+          "signed",
+          "proclaimed",
+          "executed",
+          "said",
+          "contained",
+          "United",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-112a_subsection-b",
@@ -3370,12 +4070,98 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§112b. United States international agreements and non-binding instruments; transparency provisions",
       "subsection": "(k)",
-      "display_label": "[1 U.S.C. 112b(k)]",
+      "display_label": "[1 U.S.C. 112(k)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(k) In this section: (1) The term \"appropriate congressional committees\" means— (A) the Committee on Foreign Relations of the Senate; and (B) the Committee on Foreign Affairs of the House of Representatives. (2) The term \"appropriate department or agency\" means the department or agency of the United States Government that negotiates and enters into a qualifying non-binding instrument on behalf of itself or the United States. (3) The term \"intelligence community\" has the meaning given that term in section 3(4) of the National Security Act of 1947 (50 U.S.C. 3003(4)). (4) The term \"international agreement\" includes— (A) any treaty that requires the advice and consent of the Senate, pursuant to article II of the Constitution of the United States; and (B) any other international agreement to which the United States is a party and that is not subject to the advice and consent of the Senate. (5) The term \"qualifying non-binding instrument\"— (A) except as provided in subparagraph (B), means a non-binding instrument that— (i) is or will be under negotiation, is signed or otherwise becomes operative, or is implemented with one or more foreign governments, international organizations, or foreign entities, including non-state actors; and (ii)(I) could reasonably be expected to have a significant impact on the foreign policy of the United States; or (II) is the subject of a written communication from the Chair or Ranking Member of either of the appropriate congressional committees to the Secretary; and (B) does not include any non-binding instrument that is signed or otherwise becomes operative or is implemented pursuant to the authorities relied upon by the Department of Defense, the Armed Forces of the United States, or any element of the intelligence community. (6) The term \"Secretary\" means the Secretary of State. (7)(A) The term \"text\" with respect to an international agreement or qualifying non-binding instrument includes— (i) any annex, appendix, codicil, side agreement, side letter, or any document of similar purpose or function to the aforementioned, regardless of the title of the document, that is entered into contemporaneously and in conjunction with the international agreement or qualifying non-binding instrument; and (ii) any implementing agreement or arrangement, or any document of similar purpose or function to the aforementioned regardless of the title of the document, that is entered into contemporaneously and in conjunction with the international agreement or qualifying non-binding instrument. (B) As used in subparagraph (A), the term \"contemporaneously and in conjunction with\"— (i) shall be construed liberally; and (ii) may not be interpreted to require any action to have occurred simultaneously or on the same day.",
+        "adjectives": [
+          "appropriate",
+          "congressional",
+          "Foreign",
+          "Foreign",
+          "appropriate",
+          "non-binding",
+          "National",
+          "international",
+          "pursuant",
+          "other",
+          "international",
+          "United",
+          "subject",
+          "non-binding",
+          "non-binding",
+          "operative",
+          "more",
+          "foreign",
+          "international",
+          "foreign",
+          "non-state",
+          "significant",
+          "foreign",
+          "appropriate",
+          "congressional",
+          "non-binding",
+          "operative",
+          "pursuant",
+          "Armed",
+          "international",
+          "non-binding",
+          "similar",
+          "aforementioned",
+          "international",
+          "non-binding",
+          "similar",
+          "aforementioned",
+          "international",
+          "non-binding",
+          "same"
+        ],
+        "verbs": [
+          "means",
+          "means",
+          "United",
+          "negotiates",
+          "enters",
+          "qualifying",
+          "United",
+          "has",
+          "given",
+          "includes",
+          "requires",
+          "United",
+          "qualifying",
+          "provided",
+          "means",
+          "signed",
+          "becomes",
+          "implemented",
+          "including",
+          "expected",
+          "have",
+          "United",
+          "written",
+          "include",
+          "signed",
+          "becomes",
+          "implemented",
+          "relied",
+          "United",
+          "means",
+          "includes",
+          "entered",
+          "implementing",
+          "entered",
+          "used",
+          "construed",
+          "interpreted",
+          "require",
+          "occurred"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-112b_subsection-l",
@@ -3426,11 +4212,42 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 2",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 2—ACTS AND RESOLUTIONS; FORMALITIES OF ENACTMENT; REPEALS; SEALING OF INSTRUMENTS",
+      "section": "§113. \"Little and Brown's\" edition of laws and treaties; slip laws; Treaties and Other International Acts Series; admissibility in evidence",
       "display_label": "[1 U.S.C. 113]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "The edition of the laws and treaties of the United States, published by Little and Brown, and the publications in slip or pamphlet form of the laws of the United States issued under the authority of the Archivist of the United States, and the Treaties and Other International Acts Series issued under the authority of the Secretary of State shall be competent evidence of the several public and private Acts of Congress, and of the treaties, international agreements other than treaties, and proclamations by the President of such treaties and international agreements other than treaties, as the case may be, therein contained, in all the courts of law and equity and of maritime jurisdiction, and in all the tribunals and public offices of the United States, and of the several States, without any further proof or authentication thereof.",
+        "adjectives": [
+          "Little",
+          "Other",
+          "International",
+          "competent",
+          "several",
+          "public",
+          "private",
+          "international",
+          "other",
+          "such",
+          "international",
+          "other",
+          "maritime",
+          "public",
+          "several",
+          "further"
+        ],
+        "verbs": [
+          "United",
+          "published",
+          "United",
+          "issued",
+          "United",
+          "issued",
+          "contained",
+          "United"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-2_section-114",
@@ -3841,12 +4658,19 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 3",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 3—CODE OF LAWS OF UNITED STATES AND SUPPLEMENTS; DISTRICT OF COLUMBIA CODE AND SUPPLEMENTS",
+      "section": "§204. Codes and Supplements as evidence of the laws of United States and District of Columbia; citation of Codes and Supplements",
       "subsection": "(c)",
       "display_label": "[1 U.S.C. 204(c)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(c) District of Columbia Code; citation.—The Code of the District of Columbia may be cited as \"D.C. Code\".",
+        "adjectives": null,
+        "verbs": [
+          "cited"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-3_section-204_subsection-d",
@@ -3854,12 +4678,24 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 3",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 3—CODE OF LAWS OF UNITED STATES AND SUPPLEMENTS; DISTRICT OF COLUMBIA CODE AND SUPPLEMENTS",
+      "section": "§204. Codes and Supplements as evidence of the laws of United States and District of Columbia; citation of Codes and Supplements",
       "subsection": "(d)",
       "display_label": "[1 U.S.C. 204(d)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(d) Supplements to Codes; citation.—Supplements to the Code of Laws of the United States and to the Code of the District of Columbia may be cited, respectively, as \"U.S.C., Sup.Â Â \", and \"D.C. Code, Sup.Â Â \", the blank in each case being filled with Roman figures denoting the number of the supplement.",
+        "adjectives": [
+          "United",
+          "Roman"
+        ],
+        "verbs": [
+          "cited",
+          "filled",
+          "denoting"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-3_section-204_subsection-e",
@@ -3867,12 +4703,28 @@
       "node_type": "index",
       "time": "post-OBBBA",
       "source_title": "title-01",
-      "title": "TITLE 1",
-      "chapter": "CHAPTER 3",
+      "title": "TITLE 1—GENERAL PROVISIONS",
+      "chapter": "CHAPTER 3—CODE OF LAWS OF UNITED STATES AND SUPPLEMENTS; DISTRICT OF COLUMBIA CODE AND SUPPLEMENTS",
+      "section": "§204. Codes and Supplements as evidence of the laws of United States and District of Columbia; citation of Codes and Supplements",
       "subsection": "(e)",
       "display_label": "[1 U.S.C. 204(e)]",
       "index_heading": "",
-      "properties": {}
+      "properties": {
+        "text": "(e) New edition of Codes; citation.—New editions of each of such codes may be cited, respectively, as \"U.S.C.,Â Â ed.\", and \"D.C. Code, Â Â Â Â ed.\", the blank in each case being filled with figures denoting the last year the legislation of which is included in whole or in part.",
+        "adjectives": [
+          "New",
+          "New",
+          "such",
+          "last",
+          "whole"
+        ],
+        "verbs": [
+          "cited",
+          "filled",
+          "denoting",
+          "included"
+        ]
+      }
     },
     {
       "id": "index:title-1_chapter-3_section-205",

@@ -328,21 +328,28 @@ export async function fetchNodeCounts(
   return fetchActorCounts(limit, nodeIds, timeScope);
 }
 
-// Scope-aware search (timeScope is required)
+// Search only within the current timeScope
 export async function searchActors(query: string, timeScope: TimeScope): Promise<Actor[]> {
   ensureGraphLoadedOrThrow();
 
   const lowerQuery = query.toLowerCase();
+  
+  // Filter to only nodes in the current timeScope
   const pool = cachedGraph!.nodes.filter((n) => n.time === timeScope);
 
   const matches = pool
-    .filter((node) => (node.name ?? '').toLowerCase().includes(lowerQuery))
+    .filter((node) => {
+      const nameMatch = (node.name ?? '').toLowerCase().includes(lowerQuery);
+      const labelMatch = (node.display_label ?? '').toLowerCase().includes(lowerQuery);
+      return nameMatch || labelMatch;
+    })
     .map((node) => ({
       id: node.id,
-      name: node.name,
+      name: node.display_label || node.name, // Use display_label if available
       connection_count: node.val || 0,
+      time: node.time,
     }))
-    .sort((a, b) => b.connection_count - a.connection_count)
+    .sort((a, b) => a.name.localeCompare(b.name)) // Sort alphabetically by name
     .slice(0, 20);
 
   return matches;

@@ -172,25 +172,29 @@ export default function Sidebar({
   const [searchLogic, setSearchLogic] = useState<'AND' | 'OR'>('OR');
 
   useEffect(() => {
-    const performSearch = async () => {
-      if (searchQuery.trim().length < 2) {
-        setSearchResults([]);
-        return;
-      }
+  const performSearch = async () => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
 
-      setIsSearching(true);
-      try {
-  const results = await searchActors(searchQuery, timeScope);
-  setSearchResults(results);
-} catch (error) {
-  console.error('Search error:', error);
-  setSearchResults([]);
-}
-    };
+    setIsSearching(true);
+    try {
+      const results = await searchActors(searchQuery, timeScope);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
-    const timeoutId = setTimeout(performSearch, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, timeScope]);
+  const timeoutId = setTimeout(performSearch, 300);
+  return () => clearTimeout(timeoutId);
+}, [searchQuery, timeScope]);
+
 
   useEffect(() => {
     setLocalLimit(limit);

@@ -102,6 +102,7 @@ export interface Actor {
   id: string;
   name: string;
   connection_count: number;
+  time?: TimeScope;
 }
 
 export interface Stats {

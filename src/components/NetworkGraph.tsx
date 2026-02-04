@@ -2,19 +2,29 @@
 
 import { useEffect, useRef, useMemo, useState } from 'react';
 import * as d3 from 'd3';
-import type { Relationship, GraphNode, GraphLink, NodeType } from '../types';
+import type {
+  Relationship,
+  GraphNode,
+  GraphLink,
+  NodeType,
+  SelectedNode,
+  TimeScope,
+} from '../types';
 import { fetchActorCounts, fetchNodeDetails } from '../api';
 
 interface NetworkGraphProps {
   relationships?: Relationship[];
-  graphData?: { nodes: GraphNode[], links: GraphLink[] };
-  selectedActor: string | null;
-  onActorClick: (nodeId: string | null) => void;
+  graphData?: { nodes: GraphNode[]; links: GraphLink[] };
+
+  selectedNode: SelectedNode;
+  onNodeClick: (nodeId: string | null) => void;
+
   minDensity: number;
   actorTotalCounts: Record<string, number>;
   enabledCategories?: Set<string>;
   enabledNodeTypes?: Set<string>;
-  timeScope: 'pre-OBBBA' | 'post-OBBBA';
+
+  timeScope: TimeScope;
 }
 
 function baseColorForType(t?: NodeType): string {
@@ -32,51 +42,67 @@ function baseColorForType(t?: NodeType): string {
 
 export default function NetworkGraph({
   relationships,
-  graphData: externalGraphData, 
-  selectedActor,
-  onActorClick,
+  graphData: externalGraphData,
+  selectedNode,
+  onNodeClick,
   actorTotalCounts,
-  timeScope
+  timeScope,
 }: NetworkGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const simulationRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
-  const nodeGroupRef = useRef<d3.Selection<SVGGElement, GraphNode, SVGGElement, unknown> | null>(null);
-  const linkGroupRef = useRef<d3.Selection<SVGLineElement, GraphLink, SVGGElement, unknown> | null>(null);
+  const nodeGroupRef = useRef<
+    d3.Selection<SVGGElement, GraphNode, SVGGElement, unknown> | null
+  >(null);
+  const linkGroupRef = useRef<
+    d3.Selection<SVGLineElement, GraphLink, SVGGElement, unknown> | null
+  >(null);
+
   const transformRef = useRef<d3.ZoomTransform | null>(null);
   const hasInitializedRef = useRef(false);
+
   const [onDemandCounts, setOnDemandCounts] = useState<Record<string, number>>({});
   const [displayLabels, setDisplayLabels] = useState<Record<string, string>>({});
 
+  // Only treat selection as "active" if it belongs to the currently displayed timeScope.
+  const selectedNodeId =
+    selectedNode && selectedNode.scope === timeScope ? selectedNode.id : null;
+
+  const labelKey = (id: string) => `${timeScope}::${id}`;
+
   const fetchDisplayLabel = async (nodeId: string) => {
-    if (displayLabels[nodeId]) return displayLabels[nodeId];
-    
+    const key = labelKey(nodeId);
+    if (displayLabels[key]) return displayLabels[key];
+
     try {
-      const details = await fetchNodeDetails(nodeId);
-      if (details?.node_type === 'index' && details.display_label) {
-        setDisplayLabels(prev => ({ ...prev, [nodeId]: details.display_label }));
+      const details = await fetchNodeDetails(nodeId, timeScope);
+      if (
+        (details?.node_type === 'index' || details?.node_type === 'section') &&
+        details.display_label
+      ) {
+        setDisplayLabels((prev) => ({ ...prev, [key]: details.display_label }));
         return details.display_label;
       }
     } catch (err) {
-      console.error('Failed to fetch display label:', nodeId);
+      console.error('Failed to fetch display label:', nodeId, err);
     }
     return null;
   };
 
   const graphData = useMemo(() => {
     if (externalGraphData) {
-      const validNodeIds = new Set(externalGraphData.nodes.map(n => n.id));
-      
-      const validLinks = externalGraphData.links.filter(link => {
+      const validNodeIds = new Set(externalGraphData.nodes.map((n) => n.id));
+
+      const validLinks = externalGraphData.links.filter((link) => {
         const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
         const targetId = typeof link.target === 'string' ? link.target : link.target.id;
         return validNodeIds.has(sourceId) && validNodeIds.has(targetId);
       });
-      
+
       return {
         nodes: externalGraphData.nodes,
-        links: validLinks
+        links: validLinks,
       };
     }
 
@@ -100,14 +126,14 @@ export default function NetworkGraph({
           id: sourceId,
           name: rel.actor,
           val: 1,
-          node_type: sourceType,
+          node_type: sourceType!,
           color: baseColor,
           baseColor,
           display_label: (rel as any).actor_display_label,
         });
       } else {
         const node = nodeMap.get(sourceId)!;
-        node.val += 1;
+        node.val = (node.val ?? 0) + 1;
       }
 
       if (!nodeMap.has(targetId)) {
@@ -116,19 +142,19 @@ export default function NetworkGraph({
           id: targetId,
           name: rel.target,
           val: 1,
-          node_type: targetType,
+          node_type: targetType!,
           color: baseColor,
           baseColor,
           display_label: (rel as any).target_display_label,
         });
       } else {
         const node = nodeMap.get(targetId)!;
-        node.val += 1;
+        node.val = (node.val ?? 0) + 1;
       }
 
       const keyA = `${sourceId}|||${targetId}`;
       const keyB = `${targetId}|||${sourceId}`;
-      const edgeKey = edgeMap.has(keyA) ? keyA : (edgeMap.has(keyB) ? keyB : keyA);
+      const edgeKey = edgeMap.has(keyA) ? keyA : edgeMap.has(keyB) ? keyB : keyA;
 
       if (!edgeMap.has(edgeKey)) {
         edgeMap.set(edgeKey, {
@@ -151,7 +177,7 @@ export default function NetworkGraph({
       return { nodes: [] as GraphNode[], links: [] as GraphLink[] };
     }
 
-    const maxVal = Math.max(...allNodes.map(n => n.val), 1);
+    const maxVal = Math.max(...allNodes.map((n) => n.val ?? 1), 1);
     const strength = (v: number) => v / maxVal;
 
     const sectionColorScale = d3.scaleSequential((t: number) =>
@@ -161,8 +187,8 @@ export default function NetworkGraph({
       d3.interpolateRgb('#F9D99B', '#F0A734')(t)
     );
 
-    const nodes = allNodes.map(node => {
-      const t = strength(node.val);
+    const nodes = allNodes.map((node) => {
+      const t = strength(node.val ?? 1);
 
       let color = node.baseColor || baseColorForType(node.node_type);
       if (node.node_type === 'section' || node.node_type === 'index') {
@@ -173,8 +199,8 @@ export default function NetworkGraph({
 
       return {
         ...node,
-        val: node.val,
-        totalVal: node.val,
+        val: node.val ?? 1,
+        totalVal: node.val ?? 1,
         color,
         baseColor: color,
       };
@@ -182,6 +208,11 @@ export default function NetworkGraph({
 
     return { nodes, links };
   }, [relationships, externalGraphData]);
+
+  useEffect(() => {
+    setOnDemandCounts({});
+    setDisplayLabels({});
+  }, [timeScope]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -193,7 +224,8 @@ export default function NetworkGraph({
 
     const svg = d3.select(svgRef.current);
 
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.01, 10])
       .on('zoom', (event) => {
         transformRef.current = event.transform;
@@ -205,7 +237,7 @@ export default function NetworkGraph({
     svg.call(zoom);
 
     svg.on('click', () => {
-      onActorClick(null);
+      onNodeClick(null);
       if (simulationRef.current) {
         simulationRef.current.alphaTarget(0.3).restart();
         setTimeout(() => {
@@ -232,27 +264,41 @@ export default function NetworkGraph({
 
     const minRadius = 5;
     const maxRadius = 100;
-    const maxConnections = Math.max(...graphData.nodes.map(n => n.val), 1);
-    const radiusScale = d3.scalePow()
+    const maxConnections = Math.max(...graphData.nodes.map((n) => n.val ?? 1), 1);
+    const radiusScale = d3
+      .scalePow()
       .exponent(0.5)
       .domain([1, maxConnections])
       .range([minRadius, maxRadius])
       .clamp(true);
 
-    const simulation = d3.forceSimulation(graphData.nodes as any)
-      .force('link', d3.forceLink(graphData.links as any)
-        .id((d: any) => d.id)
-        .distance(50))
+    const simulation = d3
+      .forceSimulation(graphData.nodes as any)
+      .force(
+        'link',
+        d3
+          .forceLink(graphData.links as any)
+          .id((d: any) => d.id)
+          .distance(50)
+      )
       .force('charge', d3.forceManyBody().strength(-400))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide().radius((d: any) => radiusScale(d.val) + 5))
-      .force('radial', d3.forceRadial((d: any) => {
-        return (50 - Math.min(d.val, 50)) * 33 + 200;
-      }, width / 2, height / 2).strength(0.5));
+      .force(
+        'radial',
+        d3
+          .forceRadial(
+            (d: any) => (50 - Math.min(d.val, 50)) * 33 + 200,
+            width / 2,
+            height / 2
+          )
+          .strength(0.5)
+      );
 
     simulationRef.current = simulation as any;
 
-    const link = g.append('g')
+    const link = g
+      .append('g')
       .selectAll('line')
       .data(graphData.links)
       .join('line')
@@ -262,48 +308,54 @@ export default function NetworkGraph({
 
     linkGroupRef.current = link;
 
-    const node = g.append('g')
+    const node = g
+      .append('g')
       .selectAll('g')
       .data(graphData.nodes)
       .join('g')
-      .call(d3.drag<any, GraphNode>()
-        .on('start', (event, d: any) => {
-          d.fx = d.x;
-          d.fy = d.y;
-          (d as any)._dragging = false;
-        })
-        .on('drag', (event, d: any) => {
-          (d as any)._dragging = true;
-          d.fx = event.x;
-          d.fy = event.y;
-          if (!event.active && (d as any)._dragging) {
-            simulation.alphaTarget(0.3).restart();
-          }
-        })
-        .on('end', (event, d: any) => {
-          if (!event.active && (d as any)._dragging) {
-            simulation.alphaTarget(0);
-          }
-          d.fx = null;
-          d.fy = null;
-          (d as any)._dragging = false;
-        }) as any);
+      .call(
+        d3
+          .drag<any, GraphNode>()
+          .on('start', (event, d: any) => {
+            d.fx = d.x;
+            d.fy = d.y;
+            (d as any)._dragging = false;
+          })
+          .on('drag', (event, d: any) => {
+            (d as any)._dragging = true;
+            d.fx = event.x;
+            d.fy = event.y;
+            if (!event.active && (d as any)._dragging) {
+              simulation.alphaTarget(0.3).restart();
+            }
+          })
+          .on('end', (event, d: any) => {
+            if (!event.active && (d as any)._dragging) {
+              simulation.alphaTarget(0);
+            }
+            d.fx = null;
+            d.fy = null;
+            (d as any)._dragging = false;
+          }) as any
+      );
 
     nodeGroupRef.current = node;
 
-    node.append('circle')
-      .attr('r', (d) => radiusScale(d.val))
+    node
+      .append('circle')
+      .attr('r', (d) => radiusScale(d.val ?? 1))
       .attr('fill', (d) => d.color || d.baseColor || baseColorForType(d.node_type))
       .attr('stroke', '#fff')
       .attr('stroke-width', 1)
       .style('cursor', 'pointer')
       .on('click', (event, d) => {
         event.stopPropagation();
-        const next = selectedActor === d.id ? null : d.id;
-        onActorClick(next);
+        const next = selectedNodeId === d.id ? null : d.id;
+        onNodeClick(next);
       });
 
-    node.append('text')
+    node
+      .append('text')
       .text((d) => {
         if ((d.node_type === 'index' || d.node_type === 'section') && d.display_label) {
           return d.display_label;
@@ -311,15 +363,16 @@ export default function NetworkGraph({
         return d.name;
       })
       .attr('x', 0)
-      .attr('y', (d) => radiusScale(d.val) * 1.5)
+      .attr('y', (d) => radiusScale(d.val ?? 1) * 1.5)
       .attr('text-anchor', 'middle')
       .attr('fill', '#fff')
       .attr('font-size', '5px')
-      .attr('font-weight', (d) => d.id === selectedActor ? 'bold' : 'normal')
+      .attr('font-weight', (d) => (d.id === selectedNodeId ? 'bold' : 'normal'))
       .style('pointer-events', 'none')
       .style('user-select', 'none');
 
-    const tooltip = d3.select('body')
+    const tooltip = d3
+      .select('body')
       .append('div')
       .style('position', 'absolute')
       .style('visibility', 'hidden')
@@ -331,69 +384,71 @@ export default function NetworkGraph({
       .style('pointer-events', 'none')
       .style('z-index', '1000');
 
-    node.on('mouseover', async (event, d) => {
-      let displayName = d.name;
-      if ((d.node_type === 'index' || d.node_type === 'section') && !d.display_label) {
-        const label = await fetchDisplayLabel(d.id);
-        if (label) displayName = label;
-      } else if (d.display_label) {
-        displayName = d.display_label;
-      }
-
-
-      let totalCount = actorTotalCounts[d.id] ?? onDemandCounts[d.id];
-
-      if (totalCount === undefined) {
-        tooltip
-          .style('visibility', 'visible')
-          .html(`<strong>${displayName}</strong><br/>${d.val} connections<br/>(loading total...)`);
-
-        try {
-          const counts = await fetchActorCounts(1, [d.id], timeScope);
-          const count = counts[d.id] ?? 0;
-          setOnDemandCounts(prev => ({ ...prev, [d.id]: count }));
-          totalCount = count;
-
-          tooltip.html(`<strong>${displayName}</strong><br/>${d.val} connections<br/>(${totalCount} total)`);
-        } catch (error) {
-          console.error('Error fetching actor count:', error);
-          tooltip.html(`<strong>${displayName}</strong><br/>${d.val} connections`);
+    node
+      .on('mouseover', async (event, d) => {
+        let displayName = d.name;
+        if ((d.node_type === 'index' || d.node_type === 'section') && !d.display_label) {
+          const label = await fetchDisplayLabel(d.id);
+          if (label) displayName = label;
+        } else if (d.display_label) {
+          displayName = d.display_label;
         }
-      } else {
-        tooltip
-          .style('visibility', 'visible')
-          .html(`<strong>${displayName}</strong><br/>${d.val} connections<br/>(${totalCount} total)`);
-      }
-    })
-    .on('mousemove', (event) => {
-      tooltip
-        .style('top', (event.pageY - 10) + 'px')
-        .style('left', (event.pageX + 10) + 'px');
-    })
-    .on('mouseout', () => {
-      tooltip.style('visibility', 'hidden');
-    });
 
-    link.on('mouseover', (event, d) => {
-      const linkData = d as GraphLink & { count?: number };
-      const count = linkData.count || 1;
-      let html = count > 1
-        ? `<strong>${count} relationships</strong><br/>${linkData.action}`
-        : `<strong>${linkData.action}</strong>`;
-      if (linkData.location) html += `<br/>📍 ${linkData.location}`;
-      if (linkData.timestamp) html += `<br/>📅 ${linkData.timestamp}`;
-      tooltip
-        .style('visibility', 'visible')
-        .html(html);
-    })
-    .on('mousemove', (event) => {
-      tooltip
-        .style('top', (event.pageY - 10) + 'px')
-        .style('left', (event.pageX + 10) + 'px');
-    })
-    .on('mouseout', () => {
-      tooltip.style('visibility', 'hidden');
-    });
+        let totalCount = actorTotalCounts[d.id] ?? onDemandCounts[d.id];
+
+        if (totalCount === undefined) {
+          tooltip
+            .style('visibility', 'visible')
+            .html(
+              `<strong>${displayName}</strong><br/>${d.val} connections<br/>(loading total...)`
+            );
+
+          try {
+            const counts = await fetchActorCounts(1, [d.id], timeScope);
+            const count = counts[d.id] ?? 0;
+            setOnDemandCounts((prev) => ({ ...prev, [d.id]: count }));
+            totalCount = count;
+
+            tooltip.html(
+              `<strong>${displayName}</strong><br/>${d.val} connections<br/>(${totalCount} total)`
+            );
+          } catch (error) {
+            console.error('Error fetching actor count:', error);
+            tooltip.html(`<strong>${displayName}</strong><br/>${d.val} connections`);
+          }
+        } else {
+          tooltip
+            .style('visibility', 'visible')
+            .html(
+              `<strong>${displayName}</strong><br/>${d.val} connections<br/>(${totalCount} total)`
+            );
+        }
+      })
+      .on('mousemove', (event) => {
+        tooltip.style('top', event.pageY - 10 + 'px').style('left', event.pageX + 10 + 'px');
+      })
+      .on('mouseout', () => {
+        tooltip.style('visibility', 'hidden');
+      });
+
+    link
+      .on('mouseover', (event, d) => {
+        const linkData = d as GraphLink & { count?: number };
+        const count = linkData.count || 1;
+        let html =
+          count > 1
+            ? `<strong>${count} relationships</strong><br/>${linkData.action}`
+            : `<strong>${linkData.action}</strong>`;
+        if (linkData.location) html += `<br/>📍 ${linkData.location}`;
+        if (linkData.timestamp) html += `<br/>📅 ${linkData.timestamp}`;
+        tooltip.style('visibility', 'visible').html(html);
+      })
+      .on('mousemove', (event) => {
+        tooltip.style('top', event.pageY - 10 + 'px').style('left', event.pageX + 10 + 'px');
+      })
+      .on('mouseout', () => {
+        tooltip.style('visibility', 'hidden');
+      });
 
     simulation.on('tick', () => {
       link
@@ -409,41 +464,37 @@ export default function NetworkGraph({
       simulation.stop();
       tooltip.remove();
     };
-  }, [graphData, selectedActor, onActorClick]);
+  }, [graphData, selectedNodeId, onNodeClick, timeScope, actorTotalCounts]);
 
   useEffect(() => {
     if (!nodeGroupRef.current || !linkGroupRef.current) return;
-    
-    nodeGroupRef.current.selectAll('circle')
-      .attr('fill', (d: any) => {
-        return selectedActor && d.id === selectedActor ? '#06b6d4' : d.baseColor;
-      });
 
-    nodeGroupRef.current.selectAll('text')
-      .attr('font-weight', (d: any) => d.id === selectedActor ? 'bold' : 'normal');
+    nodeGroupRef.current
+      .selectAll('circle')
+      .attr('fill', (d: any) => (selectedNodeId && d.id === selectedNodeId ? '#06b6d4' : d.baseColor));
+
+    nodeGroupRef.current
+      .selectAll('text')
+      .attr('font-weight', (d: any) => (d.id === selectedNodeId ? 'bold' : 'normal'));
 
     linkGroupRef.current
-  .attr('stroke', (d: any) => {
-    if (selectedActor) {
-      const sourceId = typeof d.source === 'string' ? d.source : d.source.id;
-      const targetId = typeof d.target === 'string' ? d.target : d.target.id;
-      if (sourceId === selectedActor || targetId === selectedActor) {
-        return '#22c55e';
-      }
-    }
-    return '#4b5563';
-  })
-  .attr('stroke-opacity', (d: any) => {
-    if (selectedActor) {
-      const sourceId = typeof d.source === 'string' ? d.source : d.source.id;
-      const targetId = typeof d.target === 'string' ? d.target : d.target.id;
-      if (sourceId === selectedActor || targetId === selectedActor) {
-        return 1;
-      }
-    }
-    return 0.6;
-  });
-  }, [selectedActor]);
+      .attr('stroke', (d: any) => {
+        if (selectedNodeId) {
+          const sourceId = typeof d.source === 'string' ? d.source : d.source.id;
+          const targetId = typeof d.target === 'string' ? d.target : d.target.id;
+          if (sourceId === selectedNodeId || targetId === selectedNodeId) return '#22c55e';
+        }
+        return '#4b5563';
+      })
+      .attr('stroke-opacity', (d: any) => {
+        if (selectedNodeId) {
+          const sourceId = typeof d.source === 'string' ? d.source : d.source.id;
+          const targetId = typeof d.target === 'string' ? d.target : d.target.id;
+          if (sourceId === selectedNodeId || targetId === selectedNodeId) return 1;
+        }
+        return 0.6;
+      });
+  }, [selectedNodeId]);
 
   return (
     <div className="relative w-full h-full">

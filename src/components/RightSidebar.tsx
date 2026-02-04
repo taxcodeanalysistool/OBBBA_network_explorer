@@ -2,106 +2,134 @@
 
 import { useState, useEffect } from 'react';
 import { searchActors, fetchNodeDetails } from '../api';
-import type { Relationship, Actor, GraphNode } from '../types';
-import DocumentModal from './DocumentModal';
+import type { Relationship, Actor, GraphNode, SelectedNode, TimeScope } from '../types';
 
 interface RightSidebarProps {
-  selectedActor: string | null;
+  selectedNode: SelectedNode;
   relationships: Relationship[];
   totalRelationships: number;
   onClose: () => void;
   yearRange: [number, number];
   keywords?: string;
-  timeScope: 'pre-OBBBA' | 'post-OBBBA';
-  onTimeScopeChange: (scope: 'pre-OBBBA' | 'post-OBBBA') => void;
+  timeScope: TimeScope;
+  onTimeScopeChange: (scope: TimeScope) => void;
+  onViewFullText: (docId: string) => void;
 }
 
 export default function RightSidebar({
-  selectedActor,
+  selectedNode,
   relationships,
   totalRelationships,
   onClose,
   keywords,
   timeScope,
   onTimeScopeChange,
+  onViewFullText,
 }: RightSidebarProps) {
   const [expandedRelId, setExpandedRelId] = useState<number | null>(null);
-  const [documentToView, setDocumentToView] = useState<string | null>(null);
   const [filterActor, setFilterActor] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Actor[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [nodeDetails, setNodeDetails] = useState<Record<string, GraphNode | null>>({});
+
+  // allow "loading" sentinel
+  const [nodeDetails, setNodeDetails] = useState<Record<string, GraphNode | null | undefined>>(
+    {}
+  );
   const [displayLabels, setDisplayLabels] = useState<Record<string, string>>({});
-  const [selectedActorDisplayLabel, setSelectedActorDisplayLabel] = useState<string | null>(null);
-  const [selectedActorDetails, setSelectedActorDetails] = useState<GraphNode | null>(null);
+
+  const [selectedNodeDisplayLabel, setSelectedNodeDisplayLabel] = useState<string | null>(null);
+  const [selectedNodeDetails, setSelectedNodeDetails] = useState<GraphNode | null>(null);
+  const [isSelectedNodeLoading, setIsSelectedNodeLoading] = useState(false);
+
+  const scopedKey = (id: string) => `${timeScope}::${id}`;
+
+  const selectedNodeId = selectedNode?.id ?? null;
+  const selectionScope = selectedNode?.scope ?? null;
+  const isSelectionOutOfScope = !!selectedNode && selectionScope !== timeScope;
 
   const getNodeTypeColor = (type?: string): string => {
     const colors: Record<string, string> = {
-      'index': '#9B96C9',
-      'section': '#9B96C9',
-      'entity': '#F0A734',
-      'concept': '#F0A734',
+      index: '#9B96C9',
+      section: '#9B96C9',
+      entity: '#F0A734',
+      concept: '#F0A734',
     };
     return colors[type || ''] || '#AFBBE8';
   };
 
   const getNodeTypeFromRel = (nodeId?: string): string | undefined => {
-    if (nodeId && nodeDetails[nodeId]) {
-      return nodeDetails[nodeId]?.node_type;
+    if (nodeId) {
+      const k = scopedKey(nodeId);
+      if (nodeDetails[k]) return nodeDetails[k]?.node_type;
     }
 
     if (nodeId) {
       const parts = nodeId.split(':');
-      if (parts.length > 0) {
-        return parts[0];
-      }
+      if (parts.length > 0) return parts[0];
     }
 
     return undefined;
   };
 
   const fetchDisplayLabel = async (nodeId: string) => {
-    if (displayLabels[nodeId]) return;
-    
+    const k = scopedKey(nodeId);
+    if (displayLabels[k]) return displayLabels[k];
+
     try {
-      const details = await fetchNodeDetails(nodeId);
-      if (details?.node_type === 'index' && details.display_label) {
-        setDisplayLabels(prev => ({ ...prev, [nodeId]: details.display_label }));
+      const details = await fetchNodeDetails(nodeId, selectionScope ?? timeScope);
+      const label = details?.display_label;
+      if (label) {
+        setDisplayLabels((prev) => ({ ...prev, [k]: label }));
+        return label;
       }
     } catch (err) {
-      console.error('Failed to fetch display label:', nodeId);
+      console.error('Failed to fetch display label:', nodeId, err);
     }
+
+    return null;
   };
 
-
   useEffect(() => {
-    const fetchSelectedActorLabel = async () => {
-      if (!selectedActor) {
-        setSelectedActorDisplayLabel(null);
-        setSelectedActorDetails(null);
+    const fetchSelectedNodeLabel = async () => {
+      if (!selectedNodeId || isSelectionOutOfScope) {
+        setSelectedNodeDisplayLabel(null);
+        setSelectedNodeDetails(null);
+        setIsSelectedNodeLoading(false);
         return;
       }
-      
+
+      setIsSelectedNodeLoading(true);
       try {
-        const details = await fetchNodeDetails(selectedActor);
-        
-        setSelectedActorDetails(details);
-        
-        if (details?.node_type === 'index' && details.display_label) {
-          setSelectedActorDisplayLabel(details.display_label);
+        const details = await fetchNodeDetails(selectedNodeId, selectionScope ?? timeScope);
+        setSelectedNodeDetails(details ?? null);
+
+        if (
+          (details?.node_type === 'index' || details?.node_type === 'section') &&
+          details.display_label
+        ) {
+          setSelectedNodeDisplayLabel(details.display_label);
         } else {
-          setSelectedActorDisplayLabel(null);
+          setSelectedNodeDisplayLabel(null);
         }
       } catch (err) {
-        console.error('Failed to fetch display label for selected actor:', err);
-        setSelectedActorDisplayLabel(null);
-        setSelectedActorDetails(null);
+        console.error('Failed to fetch details for selected node:', err);
+        setSelectedNodeDisplayLabel(null);
+        setSelectedNodeDetails(null);
+      } finally {
+        setIsSelectedNodeLoading(false);
       }
     };
-    
-    fetchSelectedActorLabel();
-  }, [selectedActor]);
+
+    fetchSelectedNodeLabel();
+  }, [selectedNodeId, timeScope, isSelectionOutOfScope]);
+
+  useEffect(() => {
+    setExpandedRelId(null);
+    setFilterActor(null);
+    setSearchQuery('');
+    setSearchResults([]);
+  }, [timeScope]);
 
   useEffect(() => {
     const performSearch = async () => {
@@ -112,7 +140,7 @@ export default function RightSidebar({
 
       setIsSearching(true);
       try {
-        const results = await searchActors(searchQuery);
+        const results = await searchActors(searchQuery, timeScope);
         setSearchResults(results);
       } catch (error) {
         console.error('Search error:', error);
@@ -124,33 +152,34 @@ export default function RightSidebar({
 
     const timeoutId = setTimeout(performSearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, timeScope]);
 
   useEffect(() => {
     const fetchAllLabels = async () => {
       const nodeIds = new Set<string>();
-      
-      relationships.forEach(rel => {
+
+      relationships.forEach((rel) => {
         if (rel.actor_id) nodeIds.add(rel.actor_id);
         if (rel.target_id) nodeIds.add(rel.target_id);
       });
-      
+
       for (const nodeId of nodeIds) {
-        if (!displayLabels[nodeId]) {
+        const k = scopedKey(nodeId);
+        if (!displayLabels[k]) {
           fetchDisplayLabel(nodeId);
         }
       }
     };
-    
+
     if (relationships.length > 0) {
       fetchAllLabels();
     }
-  }, [relationships, displayLabels]);
+    // intentionally NOT depending on displayLabels to avoid looping
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relationships, timeScope]);
 
   const filteredRelationships = filterActor
-    ? relationships.filter(rel =>
-        rel.actor === filterActor || rel.target === filterActor
-      )
+    ? relationships.filter((rel) => rel.actor === filterActor || rel.target === filterActor)
     : relationships;
 
   const sortedRelationships = [...filteredRelationships].sort((a, b) => {
@@ -161,91 +190,143 @@ export default function RightSidebar({
   });
 
   const toggleExpand = async (rel: Relationship) => {
-    if (expandedRelId === rel.id) {
-      setExpandedRelId(null);
-      return;
-    }
+  if (!selectedNodeId) return;
 
-    setExpandedRelId(rel.id);
-
-    const isActorSelected = rel.actor_id === selectedActor;
-    const neighborId = isActorSelected ? rel.target_id : rel.actor_id;
-    if (!neighborId) return;
-
-
-    if (nodeDetails[neighborId] === undefined) {
-      try {
-        const details = await fetchNodeDetails(neighborId);
-        setNodeDetails(prev => ({ ...prev, [neighborId]: details }));
-        
-        if (details?.node_type === 'index' && details.display_label) {
-          setDisplayLabels(prev => ({ ...prev, [neighborId]: details.display_label }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch node details:', err);
-        setNodeDetails(prev => ({ ...prev, [neighborId]: null }));
-      }
-    }
-  };
-
-  if (!selectedActor) {
-    return null;
+  if (expandedRelId === rel.id) {
+    setExpandedRelId(null);
+    return;
   }
 
+  setExpandedRelId(rel.id);
+
+  const isSelectedIsActorSide = rel.actor_id === selectedNodeId;
+  const neighborId = isSelectedIsActorSide ? rel.target_id : rel.actor_id;
+  if (!neighborId) return;
+
+  const neighborKey = scopedKey(neighborId);
+
+  // Check if key exists in the object
+  if (neighborKey in nodeDetails) {
+    const currentValue = nodeDetails[neighborKey];
+    
+    // If undefined, it's loading
+    if (currentValue === undefined) {
+      return;
+    }
+    
+    // If null, we tried and it wasn't found
+    if (currentValue === null) {
+      return;
+    }
+    
+    // If truthy object, already loaded
+    return;
+  }
+
+  // Key doesn't exist yet, so start loading
+  setNodeDetails((prev) => ({ ...prev, [neighborKey]: undefined }));
+
+  try {
+    const details = await fetchNodeDetails(neighborId, selectionScope ?? timeScope);
+    setNodeDetails((prev) => ({ ...prev, [neighborKey]: details ?? null }));
+
+    if (
+      (details?.node_type === 'index' || details?.node_type === 'section') &&
+      details.display_label
+    ) {
+      setDisplayLabels((prev) => ({ ...prev, [neighborKey]: details.display_label! }));
+    }
+  } catch (e) {
+    console.error('Failed to fetch neighbor details', e);
+    setNodeDetails((prev) => ({ ...prev, [neighborKey]: null }));
+  }
+};
+
+
+  // Always render the sidebar shell; show content based on selection state.
+  const headerTitle = !selectedNodeId
+    ? 'Node relationships'
+    : isSelectionOutOfScope
+    ? 'Selection out of scope'
+    : 'Node relationships';
+
   return (
-    <>
-      <div className="w-96 bg-gray-800 border-l border-gray-700 flex flex-col h-full overflow-hidden">
-        <div className="p-4 border-b border-gray-700">
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex-1">
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-lg font-semibold text-blue-400">Node relationships</h2>
-              </div>
-              
+    <div className="w-96 bg-gray-800 border-l border-gray-700 flex flex-col h-full overflow-hidden">
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-blue-400">{headerTitle}</h2>
+
+            {!selectedNodeId ? (
+              <p className="text-sm text-gray-400 mt-2">Select a node to see its relationships.</p>
+            ) : (
               <div className="mt-2">
                 <p className="text-sm text-white font-medium">
-                  {selectedActorDisplayLabel || selectedActor}
+                  {selectedNodeDisplayLabel || selectedNodeId}
                 </p>
-                {selectedActorDetails && (
+
+                {selectedNodeDetails && (
                   <p className="text-xs text-gray-400">
-                    {selectedActorDetails.node_type === 'index' ? 'USC Section' : 
-                     selectedActorDetails.node_type === 'entity' ? 'Entity' :
-                     selectedActorDetails.node_type === 'concept' ? 'Concept' :
-                     selectedActorDetails.node_type}
+                    {selectedNodeDetails.node_type === 'index'
+                      ? 'USC Section'
+                      : selectedNodeDetails.node_type === 'entity'
+                      ? 'Entity'
+                      : selectedNodeDetails.node_type === 'concept'
+                      ? 'Concept'
+                      : selectedNodeDetails.node_type}
                   </p>
                 )}
-              </div>
-              
-              <p className="text-xs text-gray-500 mt-1">
-                Showing {sortedRelationships.length} of {totalRelationships} relationships
-              </p>
-              
-              <div className="mt-3 space-y-2">
-                {selectedActorDetails && (selectedActorDetails.node_type === 'section' || selectedActorDetails.node_type === 'index') && (
-                  <button
-                    onClick={() => setDocumentToView(selectedActorDetails.id)}
-                    className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium transition-colors w-full"
-                  >
-                    View full text
-                  </button>
-                )}
-                
-                {selectedActorDetails && selectedActorDetails.node_type === 'concept' && selectedActorDetails.properties?.definition && (
-                  <div className="p-2 bg-blue-900/20 border border-blue-700/30 rounded">
-                    <div className="text-xs text-blue-400 font-semibold mb-1">Definition:</div>
-                    <div className="text-xs text-gray-300">{selectedActorDetails.properties.definition}</div>
+
+                <p className="text-xs text-gray-500 mt-1">
+                  Showing {sortedRelationships.length} of {totalRelationships} relationships
+                </p>
+
+                {isSelectionOutOfScope && (
+                  <div className="mt-3 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded">
+                    <div className="text-xs text-yellow-300 font-semibold">
+                      You selected this node in {selectionScope === 'pre-OBBBA' ? 'Pre' : 'Post'}
+                      -OBBBA.
+                    </div>
+                    <div className="text-xs text-gray-300 mt-1">
+                      Switch back to that time scope to view its relationships, or click a node in
+                      the current scope.
+                    </div>
                   </div>
                 )}
+
+                {!isSelectionOutOfScope &&
+                  selectedNodeDetails &&
+                  (selectedNodeDetails.node_type === 'section' ||
+                    selectedNodeDetails.node_type === 'index') && (
+                    <button
+                      onClick={() => onViewFullText(selectedNodeDetails.id)}
+                      className="mt-3 text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium transition-colors w-full"
+                    >
+                      View full text
+                    </button>
+                  )}
+
+                {!isSelectionOutOfScope &&
+                  selectedNodeDetails?.node_type === 'concept' &&
+                  selectedNodeDetails.properties?.definition && (
+                    <div className="mt-3 p-2 bg-blue-900/20 border border-blue-700/30 rounded">
+                      <div className="text-xs text-blue-400 font-semibold mb-1">Definition:</div>
+                      <div className="text-xs text-gray-300">
+                        {selectedNodeDetails.properties.definition}
+                      </div>
+                    </div>
+                  )}
               </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors ml-2"
-            >
-              ✕
-            </button>
+            )}
           </div>
 
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors ml-2">
+            ✕
+          </button>
+        </div>
+
+        {/* Filter/search UI: only useful when there's a selection in-scope */}
+        {!selectedNodeId || isSelectionOutOfScope ? null : (
           <div className="relative">
             {filterActor ? (
               <div className="flex items-center justify-between bg-blue-900/30 border border-blue-700/50 rounded px-2 py-1">
@@ -265,9 +346,7 @@ export default function RightSidebar({
               </div>
             ) : (
               <>
-                <label className="block text-xs text-gray-400 mb-1">
-                  Filter by another node:
-                </label>
+                <label className="block text-xs text-gray-400 mb-1">Filter by another node:</label>
                 <input
                   type="text"
                   value={searchQuery}
@@ -279,9 +358,7 @@ export default function RightSidebar({
                 {searchQuery.trim().length >= 2 && (
                   <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg max-h-40 overflow-y-auto">
                     {isSearching ? (
-                      <div className="px-2 py-1 text-xs text-gray-400">
-                        Searching...
-                      </div>
+                      <div className="px-2 py-1 text-xs text-gray-400">Searching...</div>
                     ) : searchResults.length > 0 ? (
                       searchResults.map((actor) => (
                         <button
@@ -300,135 +377,104 @@ export default function RightSidebar({
                         </button>
                       ))
                     ) : (
-                      <div className="px-2 py-1 text-xs text-gray-400">
-                        No nodes found
-                      </div>
+                      <div className="px-2 py-1 text-xs text-gray-400">No nodes found</div>
                     )}
                   </div>
                 )}
               </>
             )}
           </div>
-        </div>
+        )}
+      </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {sortedRelationships.length === 0 ? (
-            <p className="text-gray-500 text-sm p-4">No relationships found</p>
-          ) : (
-            sortedRelationships.map((rel, index) => {
-              const isExpanded = expandedRelId === rel.id;
-              const isActorSelected = rel.actor_id === selectedActor;
+      <div className="flex-1 overflow-y-auto">
+        {!selectedNodeId ? (
+          <p className="text-gray-500 text-sm p-4">No node selected.</p>
+        ) : isSelectedNodeLoading ? (
+          <p className="text-gray-500 text-sm p-4">Loading node details…</p>
+        ) : isSelectionOutOfScope ? (
+          <p className="text-gray-500 text-sm p-4">
+            No relationships to show because this node isn’t present in the current time scope.
+          </p>
+        ) : sortedRelationships.length === 0 ? (
+          <p className="text-gray-500 text-sm p-4">No relationships found</p>
+        ) : (
+          sortedRelationships.map((rel, index) => {
+            const isExpanded = expandedRelId === rel.id;
+            const isSelectedIsActorSide = rel.actor_id === selectedNodeId;
 
-              const neighborId = isActorSelected
-                ? (rel.target_id ?? rel.target)
-                : (rel.actor_id ?? rel.actor);
-              const neighborDetails = nodeDetails[neighborId];
+            const neighborId = isSelectedIsActorSide
+              ? rel.target_id ?? rel.target
+              : rel.actor_id ?? rel.actor;
 
-              return (
-                <div key={rel.id}>
-                  <div
-                    onClick={() => toggleExpand(rel)}
-                    className={`p-4 cursor-pointer hover:bg-gray-700/30 transition-colors ${
-                      isExpanded ? 'bg-gray-700/20' : ''
-                    }`}
-                  >
-                    <div className="text-sm flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <span 
-                            className="font-medium"
-                            style={{ color: getNodeTypeColor(rel.actor_type || getNodeTypeFromRel(rel.actor_id)) }}
-                          >
-                            {displayLabels[rel.actor_id || rel.actor] || rel.actor}
-                          </span>
-                          <span className="text-gray-400 text-xs">
-                            {rel.action}
-                          </span>
-                          <span 
-                            className="font-medium"
-                            style={{ color: getNodeTypeColor(rel.target_type || getNodeTypeFromRel(rel.target_id)) }}
-                          >
-                            {displayLabels[rel.target_id || rel.target] || rel.target}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {rel.edge_type?.replace(/_/g, ' ')}
-                        </div>
+            const neighborKey = scopedKey(neighborId);
+            const neighborDetails = nodeDetails[neighborKey];
+
+            return (
+              <div key={rel.id}>
+                <div
+                  onClick={() => toggleExpand(rel)}
+                  className={`p-4 cursor-pointer hover:bg-gray-700/30 transition-colors ${
+                    isExpanded ? 'bg-gray-700/20' : ''
+                  }`}
+                >
+                  <div className="text-sm flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span
+                          className="font-medium"
+                          style={{
+                            color: getNodeTypeColor(rel.actor_type || getNodeTypeFromRel(rel.actor_id)),
+                          }}
+                        >
+                          {displayLabels[scopedKey(rel.actor_id || rel.actor)] || rel.actor}
+                        </span>
+                        <span className="text-gray-400 text-xs">{rel.action}</span>
+                        <span
+                          className="font-medium"
+                          style={{
+                            color: getNodeTypeColor(
+                              rel.target_type || getNodeTypeFromRel(rel.target_id)
+                            ),
+                          }}
+                        >
+                          {displayLabels[scopedKey(rel.target_id || rel.target)] || rel.target}
+                        </span>
                       </div>
-                      <span className="text-gray-500 text-xs ml-2 flex-shrink-0">
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {rel.edge_type?.replace(/_/g, ' ')}
+                      </div>
                     </div>
+                    <span className="text-gray-500 text-xs ml-2 flex-shrink-0">
+                      {isExpanded ? '▼' : '▶'}
+                    </span>
                   </div>
+                </div>
 
-                  {isExpanded && (
-                    <div className="px-4 pb-4 bg-gray-700/10">
-                      {neighborDetails === undefined && (
-                        <div className="text-xs text-gray-500">
-                          Loading node details...
-                        </div>
-                      )}
+                {isExpanded && (
+                  <div className="px-4 pb-4 bg-gray-700/10">
+                    {neighborDetails === undefined && (
+                      <div className="text-xs text-gray-500">Loading node details...</div>
+                    )}
 
-                      {neighborDetails && (neighborDetails.node_type === 'section' || neighborDetails.node_type === 'index') && (
+                    {neighborDetails &&
+                      (neighborDetails.node_type === 'section' ||
+                        neighborDetails.node_type === 'index') && (
                         <div className="space-y-2">
                           <div className="text-xs text-gray-400 mb-1">USC Section</div>
-                          
+
                           <div className="font-semibold text-sm text-white">
                             {neighborDetails.display_label || neighborDetails.name}
                           </div>
-                          
+
                           {(neighborDetails.properties?.full_name || neighborDetails.full_name) && (
                             <div className="text-xs text-white">
                               {neighborDetails.properties?.full_name || neighborDetails.full_name}
                             </div>
                           )}
-                          
-                          {neighborDetails.section_heading && (
-                            <div className="text-xs text-white">
-                              {neighborDetails.section_num && (
-                                <span className="font-semibold">
-                                  § {neighborDetails.section_num}{' '}
-                                </span>
-                              )}
-                              {neighborDetails.section_heading}
-                            </div>
-                          )}
-                          
-                          <div className="text-xs text-gray-400">
-                            {(neighborDetails.title || neighborDetails.part || neighborDetails.chapter || neighborDetails.subchapter || neighborDetails.section) && (
-                              <div className="mb-1">
-                                <span className="font-semibold">Location:</span>{' '}
-                                {neighborDetails.title && `Title ${neighborDetails.title}`}
-                                {neighborDetails.part && `, Part ${neighborDetails.part}`}
-                                {neighborDetails.chapter && `, Chapter ${neighborDetails.chapter}`}
-                                {neighborDetails.subchapter && `, Subchapter ${neighborDetails.subchapter}`}
-                                {neighborDetails.section && `, Section ${neighborDetails.section}`}
-                              </div>
-                            )}
-                            
-                            {neighborDetails.title_num && (
-                              <div className="mb-1">
-                                <span className="font-semibold">Title:</span>{' '}
-                                {neighborDetails.title_num}
-                                {neighborDetails.title_heading && ` – ${neighborDetails.title_heading}`}
-                              </div>
-                            )}
-                            {neighborDetails.tags && (
-                              <div className="mt-1">
-                                <span className="font-semibold">Tags:</span>{' '}
-                                {neighborDetails.tags}
-                              </div>
-                            )}
-                            {neighborDetails.terms && (
-                              <div className="mt-1">
-                                <span className="font-semibold">Key terms:</span>{' '}
-                                {neighborDetails.terms}
-                              </div>
-                            )}
-                          </div>
-                          
+
                           <button
-                            onClick={() => setDocumentToView(neighborDetails.id)}
+                            onClick={() => onViewFullText(neighborDetails.id)}
                             className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium transition-colors w-full"
                           >
                             View full text
@@ -436,100 +482,58 @@ export default function RightSidebar({
                         </div>
                       )}
 
-                      {neighborDetails && neighborDetails.node_type === 'entity' && (
-                        <div className="space-y-2">
-                          <div className="text-xs text-gray-400 mb-1">Entity details</div>
-                          
-                          <div className="font-semibold text-sm text-white">
-                            {neighborDetails.name}
-                          </div>
-                          
-                          {neighborDetails.properties?.definition && (
-                            <div className="p-2 bg-blue-900/20 border border-blue-700/30 rounded">
-                              <div className="text-xs text-blue-400 font-semibold mb-1">Definition:</div>
-                              <div className="text-xs text-gray-300">{neighborDetails.properties.definition}</div>
-                            </div>
-                          )}
-                          
-                          <div className="text-xs text-gray-400">
-                            {neighborDetails.department && (
-                              <div className="mb-1">
-                                <span className="font-semibold">Department:</span>{' '}
-                                {neighborDetails.department}
-                              </div>
-                            )}
-                            {neighborDetails.total_mentions != null && (
-                              <div className="mb-1">
-                                <span className="font-semibold">Total mentions:</span>{' '}
-                                {neighborDetails.total_mentions}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                    {neighborDetails && neighborDetails.node_type === 'entity' && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-gray-400 mb-1">Entity details</div>
 
-                      {neighborDetails && neighborDetails.node_type === 'concept' && (
-                        <div className="space-y-2">
-                          <div className="text-xs text-gray-400 mb-1">Concept details</div>
-                          
-                          <div className="font-semibold text-sm text-white">
-                            {neighborDetails.name}
-                          </div>
-                          
-                          {neighborDetails.properties?.definition && (
-                            <div className="p-2 bg-blue-900/20 border border-blue-700/30 rounded">
-                              <div className="text-xs text-blue-400 font-semibold mb-1">Definition:</div>
-                              <div className="text-xs text-gray-300">{neighborDetails.properties.definition}</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        <div className="font-semibold text-sm text-white">{neighborDetails.name}</div>
 
-                      {neighborDetails &&
-                        neighborDetails.node_type !== 'section' &&
-                        neighborDetails.node_type !== 'index' &&
-                        neighborDetails.node_type !== 'entity' &&
-                        neighborDetails.node_type !== 'concept' && (
-                          <div className="text-xs text-gray-400">
-                            <div className="mb-1">
-                              <span className="font-semibold">Node:</span> {neighborDetails.name}
+                        {neighborDetails.properties?.definition && (
+                          <div className="p-2 bg-blue-900/20 border border-blue-700/30 rounded">
+                            <div className="text-xs text-blue-400 font-semibold mb-1">
+                              Definition:
                             </div>
-                            <div>
-                              <span className="font-semibold">Type:</span>{' '}
-                              {neighborDetails.node_type ?? 'unknown'}
+                            <div className="text-xs text-gray-300">
+                              {neighborDetails.properties.definition}
                             </div>
                           </div>
                         )}
+                      </div>
+                    )}
 
-                      {neighborDetails === null && (
-                        <div className="text-xs text-gray-500">
-                          No additional details available for this node.
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {neighborDetails && neighborDetails.node_type === 'concept' && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-gray-400 mb-1">Concept details</div>
 
-                  {index < sortedRelationships.length - 1 && (
-                    <div className="border-b border-gray-700" />
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                        <div className="font-semibold text-sm text-white">{neighborDetails.name}</div>
+
+                        {neighborDetails.properties?.definition && (
+                          <div className="p-2 bg-blue-900/20 border border-blue-700/30 rounded">
+                            <div className="text-xs text-blue-400 font-semibold mb-1">
+                              Definition:
+                            </div>
+                            <div className="text-xs text-gray-300">
+                              {neighborDetails.properties.definition}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {neighborDetails === null && (
+                      <div className="text-xs text-gray-500">
+                        No additional details available for this node.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {index < sortedRelationships.length - 1 && <div className="border-b border-gray-700" />}
+              </div>
+            );
+          })
+        )}
       </div>
-
-      {documentToView && (
-        <DocumentModal
-          docId={documentToView}
-          highlightTerm={selectedActor}
-          secondaryHighlightTerm={null}
-          searchKeywords={keywords}
-          timeScope={timeScope}
-          onTimeScopeChange={onTimeScopeChange}
-          onClose={() => setDocumentToView(null)}
-        />
-      )}
-    </>
+    </div>
   );
 }

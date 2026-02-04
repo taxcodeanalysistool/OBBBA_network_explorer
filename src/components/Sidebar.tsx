@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { searchActors, fetchNodeDetails } from '../api';
-import type { Stats, Actor, TagCluster } from '../types';
+import type { Stats, Actor, TagCluster, SelectedNode, TimeScope } from '../types';
+
 
 interface SidebarProps {
   stats: Stats | null;
-  selectedActor: string | null;
-  onActorSelect: (nodeId: string | null) => void;
+  selectedNode: SelectedNode;
+  onNodeSelect: (nodeId: string | null) => void;
   limit: number;
   onLimitChange: (limit: number) => void;
   maxHops: number | null;
@@ -30,10 +31,10 @@ interface SidebarProps {
   buildMode: 'topDown' | 'bottomUp';
   onStartNewNetwork?: () => void;
   onResetToTopDown?: () => void;
-  timeScope: 'pre-OBBBA' | 'post-OBBBA';
+  timeScope: TimeScope;
   selectedTitle: number;
   onSelectedTitleChange: (title: number) => void;
-  onTimeScopeChange: (scope: 'pre-OBBBA' | 'post-OBBBA') => void;
+  onTimeScopeChange: (scope: TimeScope) => void;
   availableTitles: number[];
   onBottomUpSearch?: (params: {
     keywords: string;
@@ -57,39 +58,51 @@ interface SidebarProps {
   } | null;
 }
 
-function SelectedNodeBox({ 
-  selectedActor, 
-  onActorSelect 
-}: { 
-  selectedActor: string; 
-  onActorSelect: (actor: string | null) => void;
+function SelectedNodeBox({
+  selectedNode,
+  timeScope,
+  onNodeSelect
+}: {
+  selectedNode: Exclude<SelectedNode, null>;
+  timeScope: TimeScope;
+  onNodeSelect: (nodeId: string | null) => void;
 }) {
+  const selectedNodeId = selectedNode.id;
+  const selectionScope = selectedNode.scope;
+  const isOutOfScope = selectionScope !== timeScope;
+
   const [displayLabel, setDisplayLabel] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchLabel = async () => {
-      setIsLoading(true);
-      try {
-        const details = await fetchNodeDetails(selectedActor);
-        
-        if (details?.node_type === 'index' && details.display_label) {
-          setDisplayLabel(details.display_label);
-        } else if (details?.node_type === 'section' && details.display_label) {
-          setDisplayLabel(details.display_label);
-        } else {
-          setDisplayLabel(null);
-        }
-      } catch (err) {
-        console.error('Failed to fetch node details:', err);
-        setDisplayLabel(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+useEffect(() => {
+  const fetchLabel = async () => {
+    // If the selection is from the other time bucket, don't fetch.
+    if (isOutOfScope) {
+      setDisplayLabel(null);
+      setIsLoading(false);
+      return;
+    }
 
-    fetchLabel();
-  }, [selectedActor]);
+    setIsLoading(true);
+    try {
+      const details = await fetchNodeDetails(selectedNodeId, timeScope);
+
+      if ((details?.node_type === 'index' || details?.node_type === 'section') && details.display_label) {
+        setDisplayLabel(details.display_label);
+      } else {
+        setDisplayLabel(null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch node details:', err);
+      setDisplayLabel(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchLabel();
+}, [selectedNodeId, timeScope, isOutOfScope]);
+
 
   return (
     <div className="p-4 border-b border-gray-700 flex-shrink-0">
@@ -97,11 +110,17 @@ function SelectedNodeBox({
         <div className="flex-1 mr-2">
           <div className="text-xs text-gray-400 mb-1">Selected node:</div>
           <div className="font-medium text-blue-300 break-words">
-            {displayLabel || selectedActor}
-          </div>
+  {displayLabel || selectedNodeId}
+</div>
+{isOutOfScope && (
+  <div className="text-xs text-yellow-300 mt-1">
+    Selected in {selectionScope === 'pre-OBBBA' ? 'Pre' : 'Post'}-OBBBA.
+  </div>
+)}
+
         </div>
         <button
-          onClick={() => onActorSelect(null)}
+          onClick={() => onNodeSelect(null)}
           className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs font-medium transition-colors text-white flex-shrink-0"
         >
           Clear
@@ -113,8 +132,8 @@ function SelectedNodeBox({
 
 export default function Sidebar({
   stats,
-  selectedActor,
-  onActorSelect,
+  selectedNode,
+  onNodeSelect,
   limit,
   onLimitChange,
   maxHops,
@@ -144,6 +163,8 @@ export default function Sidebar({
   const [localKeywords, setLocalKeywords] = useState('');
   const limitDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const selectedNodeId = selectedNode?.id ?? null;
+
   const [expansionDegree, setExpansionDegree] = useState(1);
   const [searchFields] = useState<Set<string>>(
     new Set(['text', 'display_label', 'entity', 'concept', 'definition'])
@@ -159,7 +180,7 @@ export default function Sidebar({
 
       setIsSearching(true);
       try {
-  const results = await searchActors(searchQuery);
+  const results = await searchActors(searchQuery, timeScope);
   setSearchResults(results);
 } catch (error) {
   console.error('Search error:', error);
@@ -169,7 +190,7 @@ export default function Sidebar({
 
     const timeoutId = setTimeout(performSearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, timeScope]);
 
   useEffect(() => {
     setLocalLimit(limit);
@@ -272,7 +293,7 @@ export default function Sidebar({
                   <button
                     key={actor.id}
                     onClick={() => {
-                      onActorSelect(actor.id);
+                      onNodeSelect(actor.id);
                       setSearchQuery('');
                       setSearchResults([]);
                     }}
@@ -304,7 +325,7 @@ export default function Sidebar({
               (buildMode === 'bottomUp' && displayGraphInfo && displayGraphInfo.nodeCount > 0)) && (
               <div className="mb-3 p-2 bg-gray-900/50 rounded text-xs space-y-1 border border-gray-700">
                 <div className="flex justify-between">
-                  <span className="text-gray-100">Displaying nodes:</span>
+                  <span className="text-gray-100">Nodes displayed:</span>
                   <span className="font-mono text-green-400">
                     {buildMode === 'topDown' 
                       ? topDownGraphInfo?.nodeCount.toLocaleString()
@@ -312,7 +333,7 @@ export default function Sidebar({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-100">Displaying relationships:</span>
+                  <span className="text-gray-100">Relationships displayed:</span>
                   <span className="font-mono text-green-400">
                     {buildMode === 'topDown'
                       ? topDownGraphInfo?.linkCount.toLocaleString()
@@ -345,10 +366,11 @@ export default function Sidebar({
       )}
 
       {/* Selected node */}
-      {selectedActor && (
+      {selectedNode && (
         <SelectedNodeBox 
-          selectedActor={selectedActor} 
-          onActorSelect={onActorSelect} 
+          selectedNode={selectedNode}
+          timeScope={timeScope}
+          onNodeSelect={onNodeSelect} 
         />
       )}
 

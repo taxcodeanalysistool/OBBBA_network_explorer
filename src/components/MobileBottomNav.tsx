@@ -1,19 +1,36 @@
+// src/components/MobileBottomNav.tsx
+
 import { useState, useEffect, useRef } from 'react';
 import { searchActors } from '../api';
-import type { Actor, Stats, TagCluster, Relationship } from '../types';
-import DocumentModal from './DocumentModal';
+import type {
+  Actor,
+  Stats,
+  TagCluster,
+  Relationship,
+  SelectedNode,
+  TimeScope,
+} from '../types';
 
 interface MobileBottomNavProps {
   stats: Stats | null;
-  selectedActor: string | null;
-  onActorSelect: (actor: string | null) => void;
+
+  timeScope: TimeScope;
+
+  selectedNode: SelectedNode;
+  onNodeSelect: (nodeId: string | null) => void;
+
+  onViewFullText: (docId: string) => void;
+
   limit: number;
   onLimitChange: (limit: number) => void;
+
   tagClusters: TagCluster[];
   enabledClusterIds: Set<number>;
   onToggleCluster: (clusterId: number) => void;
+
   enabledCategories: Set<string>;
   onToggleCategory: (category: string) => void;
+
   relationships: Relationship[];
 }
 
@@ -21,8 +38,10 @@ type Tab = 'search' | 'timeline' | 'filters';
 
 export default function MobileBottomNav({
   stats,
-  selectedActor,
-  onActorSelect,
+  timeScope,
+  selectedNode,
+  onNodeSelect,
+  onViewFullText,
   limit,
   onLimitChange,
   tagClusters,
@@ -36,9 +55,10 @@ export default function MobileBottomNav({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Actor[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [documentToView, setDocumentToView] = useState<string | null>(null);
   const [localLimit, setLocalLimit] = useState(limit);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const selectedNodeId = selectedNode?.id ?? null;
 
   useEffect(() => {
     setLocalLimit(limit);
@@ -64,6 +84,13 @@ export default function MobileBottomNav({
     };
   }, []);
 
+  // Clear mobile search UI when the time bucket changes (because results are scope-specific)
+  useEffect(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearching(false);
+  }, [timeScope]);
+
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
 
@@ -74,7 +101,7 @@ export default function MobileBottomNav({
 
     setIsSearching(true);
     try {
-      const results = await searchActors(query);
+      const results = await searchActors(query, timeScope);
       setSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);
@@ -84,8 +111,8 @@ export default function MobileBottomNav({
     }
   };
 
-  const handleActorClick = (actorName: string) => {
-    onActorSelect(actorName);
+  const handleNodeClick = (nodeId: string) => {
+    onNodeSelect(nodeId);
     setSearchQuery('');
     setSearchResults([]);
     setActiveTab(null);
@@ -104,43 +131,32 @@ export default function MobileBottomNav({
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
               <h3 className="text-lg font-semibold mb-4">Relationships</h3>
               {relationships.length > 0 ? (
                 <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                  {relationships.slice(0, 50).map((rel, idx) => (
+                  {relationships.slice(0, 50).map((rel) => (
                     <button
-                      key={idx}
-                      onClick={() => setDocumentToView(rel.doc_id)}
+                      key={rel.id}
+                      onClick={() => onViewFullText(rel.doc_id)}
                       className="w-full bg-gray-700 hover:bg-gray-600 rounded-lg p-3 text-left transition-colors"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-medium text-sm">{rel.actor}</div>
-                        {rel.timestamp && (
-                          <div className="text-xs text-gray-400">{rel.timestamp}</div>
-                        )}
+                        {rel.timestamp && <div className="text-xs text-gray-400">{rel.timestamp}</div>}
                       </div>
                       <div className="text-xs text-gray-300 mb-1">{rel.action}</div>
                       <div className="text-sm text-blue-400">{rel.target}</div>
-                      {rel.location && (
-                        <div className="text-xs text-purple-400 mt-1">{rel.location}</div>
-                      )}
+                      {rel.location && <div className="text-xs text-purple-400 mt-1">{rel.location}</div>}
                       <div className="text-xs text-gray-500 mt-2">{rel.doc_id}</div>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">
-                  No relationships to display
-                </div>
+                <div className="text-center py-8 text-gray-400">No relationships to display</div>
               )}
             </div>
           )}
@@ -152,21 +168,21 @@ export default function MobileBottomNav({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search nodes (sections, entities, tags)..."
+                  placeholder={`Search nodes (${timeScope === 'pre-OBBBA' ? 'Pre' : 'Post'}-OBBBA)…`}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
                   autoFocus
                 />
               </div>
 
-              {selectedActor && (
+              {selectedNodeId && (
                 <div className="mb-4 bg-blue-900/30 border border-blue-700/50 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs text-gray-400 mb-1">Selected:</div>
-                      <div className="font-medium text-blue-300">{selectedActor}</div>
+                      <div className="font-medium text-blue-300">{selectedNodeId}</div>
                     </div>
                     <button
-                      onClick={() => onActorSelect(null)}
+                      onClick={() => onNodeSelect(null)}
                       className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
                     >
                       Clear
@@ -182,14 +198,12 @@ export default function MobileBottomNav({
                   ) : searchResults.length > 0 ? (
                     searchResults.map((actor) => (
                       <button
-                        key={actor.name}
-                        onClick={() => handleActorClick(actor.name)}
+                        key={actor.id}
+                        onClick={() => handleNodeClick(actor.id)}
                         className="w-full p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left"
                       >
                         <div className="font-medium">{actor.name}</div>
-                        <div className="text-xs text-gray-400">
-                          {actor.connection_count} relationships
-                        </div>
+                        <div className="text-xs text-gray-400">{actor.connection_count} relationships</div>
                       </button>
                     ))
                   ) : (
@@ -208,12 +222,7 @@ export default function MobileBottomNav({
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
@@ -241,9 +250,7 @@ export default function MobileBottomNav({
                     <button
                       onClick={() => {
                         tagClusters.forEach((cluster) => {
-                          if (!enabledClusterIds.has(cluster.id)) {
-                            onToggleCluster(cluster.id);
-                          }
+                          if (!enabledClusterIds.has(cluster.id)) onToggleCluster(cluster.id);
                         });
                       }}
                       className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-xs rounded"
@@ -253,9 +260,7 @@ export default function MobileBottomNav({
                     <button
                       onClick={() => {
                         tagClusters.forEach((cluster) => {
-                          if (enabledClusterIds.has(cluster.id)) {
-                            onToggleCluster(cluster.id);
-                          }
+                          if (enabledClusterIds.has(cluster.id)) onToggleCluster(cluster.id);
                         });
                       }}
                       className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-xs rounded"
@@ -264,6 +269,7 @@ export default function MobileBottomNav({
                     </button>
                   </div>
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {tagClusters.map((cluster) => {
                     const isEnabled = enabledClusterIds.has(cluster.id);
@@ -272,9 +278,7 @@ export default function MobileBottomNav({
                         key={cluster.id}
                         onClick={() => onToggleCluster(cluster.id)}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium ${
-                          isEnabled
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-700 text-gray-400'
+                          isEnabled ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
                         }`}
                       >
                         {cluster.name}
@@ -292,9 +296,7 @@ export default function MobileBottomNav({
                       <button
                         onClick={() => {
                           stats.categories.forEach((cat) => {
-                            if (!enabledCategories.has(cat.category)) {
-                              onToggleCategory(cat.category);
-                            }
+                            if (!enabledCategories.has(cat.category)) onToggleCategory(cat.category);
                           });
                         }}
                         className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-xs rounded"
@@ -304,9 +306,7 @@ export default function MobileBottomNav({
                       <button
                         onClick={() => {
                           stats.categories.forEach((cat) => {
-                            if (enabledCategories.has(cat.category)) {
-                              onToggleCategory(cat.category);
-                            }
+                            if (enabledCategories.has(cat.category)) onToggleCategory(cat.category);
                           });
                         }}
                         className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-xs rounded"
@@ -315,6 +315,7 @@ export default function MobileBottomNav({
                       </button>
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     {stats.categories.slice(0, 10).map((cat) => {
                       const isEnabled = enabledCategories.has(cat.category);
@@ -323,14 +324,10 @@ export default function MobileBottomNav({
                           key={cat.category}
                           onClick={() => onToggleCategory(cat.category)}
                           className={`w-full flex justify-between items-center rounded px-3 py-2 text-sm transition-colors ${
-                            isEnabled
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-700 text-gray-400'
+                            isEnabled ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
                           }`}
                         >
-                          <span className="capitalize">
-                            {cat.category.replace(/_/g, ' ')}
-                          </span>
+                          <span className="capitalize">{cat.category.replace(/_/g, ' ')}</span>
                           <span className="font-mono text-xs">{cat.count}</span>
                         </button>
                       );
@@ -345,21 +342,15 @@ export default function MobileBottomNav({
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Sections:</span>
-                      <span className="font-mono text-green-400">
-                        {stats.totalDocuments.count.toLocaleString()}
-                      </span>
+                      <span className="font-mono text-green-400">{stats.totalDocuments.count.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Relationships:</span>
-                      <span className="font-mono text-blue-400">
-                        {stats.totalTriples.count.toLocaleString()}
-                      </span>
+                      <span className="font-mono text-blue-400">{stats.totalTriples.count.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Nodes (entities, tags):</span>
-                      <span className="font-mono text-purple-400">
-                        {stats.totalActors.count.toLocaleString()}
-                      </span>
+                      <span className="font-mono text-purple-400">{stats.totalActors.count.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -373,19 +364,12 @@ export default function MobileBottomNav({
       <div className="fixed inset-x-0 bottom-0 bg-gray-800 border-t border-gray-700 z-50">
         <div className="flex justify-around">
           <button
-            onClick={() =>
-              setActiveTab(activeTab === 'search' ? null : 'search')
-            }
+            onClick={() => setActiveTab(activeTab === 'search' ? null : 'search')}
             className={`flex-1 py-4 flex flex-col items-center ${
               activeTab === 'search' ? 'text-blue-400' : 'text-gray-400'
             }`}
           >
-            <svg
-              className="w-6 h-6 mb-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -397,19 +381,12 @@ export default function MobileBottomNav({
           </button>
 
           <button
-            onClick={() =>
-              setActiveTab(activeTab === 'timeline' ? null : 'timeline')
-            }
+            onClick={() => setActiveTab(activeTab === 'timeline' ? null : 'timeline')}
             className={`flex-1 py-4 flex flex-col items-center ${
               activeTab === 'timeline' ? 'text-blue-400' : 'text-gray-400'
             }`}
           >
-            <svg
-              className="w-6 h-6 mb-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -421,19 +398,12 @@ export default function MobileBottomNav({
           </button>
 
           <button
-            onClick={() =>
-              setActiveTab(activeTab === 'filters' ? null : 'filters')
-            }
+            onClick={() => setActiveTab(activeTab === 'filters' ? null : 'filters')}
             className={`flex-1 py-4 flex flex-col items-center ${
               activeTab === 'filters' ? 'text-blue-400' : 'text-gray-400'
             }`}
           >
-            <svg
-              className="w-6 h-6 mb-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -445,27 +415,6 @@ export default function MobileBottomNav({
           </button>
         </div>
       </div>
-
-      {/* Document Modal (section text) */}
-      {documentToView &&
-        (() => {
-          const rel = relationships.find((r) => r.doc_id === documentToView);
-          return rel ? (
-            <DocumentModal
-              docId={documentToView}
-              highlightTerm={selectedActor || rel.actor}
-              secondaryHighlightTerm={
-                selectedActor
-                  ? rel.actor === selectedActor
-                    ? rel.target
-                    : rel.actor
-                  : rel.target
-              }
-              searchKeywords={undefined}
-              onClose={() => setDocumentToView(null)}
-            />
-          ) : null;
-        })()}
     </>
   );
 }

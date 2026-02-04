@@ -2,16 +2,22 @@
 
 export type NodeType = 'section' | 'entity' | 'concept' | 'index';
 
+export type TimeScope = 'pre-OBBBA' | 'post-OBBBA';
+
+export type SelectedNode = {
+  id: string;
+  scope: TimeScope;
+} | null;
+
 export interface GraphNode extends d3.SimulationNodeDatum {
   id: string;
   name: string;
   node_type: NodeType;
 
-  // New: dataset scope fields
-  time?: 'pre-OBBBA' | 'post-OBBBA';
+  // Dataset scope fields
+  time?: TimeScope;
   source_title?: string;
 
-  
   // Runtime computed properties
   val?: number;
   totalVal?: number;
@@ -58,11 +64,10 @@ export interface GraphLink {
   edge_type: 'definition' | 'reference' | 'hierarchy';
   action: string;
 
-  // New: dataset scope fields
-  time?: 'pre-OBBBA' | 'post-OBBBA';
+  // Dataset scope fields
+  time?: TimeScope;
   source_title?: string;
 
-  
   definition?: string;
   location?: string;
   timestamp?: string;
@@ -89,7 +94,7 @@ export interface Relationship {
   actor_id?: string;
   target_id?: string;
   definition?: string;
-  actor_display_label?: string; 
+  actor_display_label?: string;
   target_display_label?: string;
 }
 
@@ -98,7 +103,6 @@ export interface Actor {
   name: string;
   connection_count: number;
 }
-
 
 export interface Stats {
   totalDocuments: { count: number };
@@ -115,7 +119,7 @@ export interface Document {
   category: string;
   date_range_earliest: string | null;
   date_range_latest: string | null;
-  
+
   full_name?: string;
   text?: string;
   title?: string | null;
@@ -136,7 +140,15 @@ export interface TagCluster {
 
 export interface NetworkBuilderState {
   searchTerms: string[];
-  searchFields: ('text' | 'full_name' | 'display_label' | 'definition' | 'entity' | 'concept' | 'properties')[];
+  searchFields: (
+    | 'text'
+    | 'full_name'
+    | 'display_label'
+    | 'definition'
+    | 'entity'
+    | 'concept'
+    | 'properties'
+  )[];
   allowedNodeTypes: ('section' | 'entity' | 'concept' | 'index')[];
   allowedEdgeTypes: ('definition' | 'reference' | 'hierarchy')[];
   allowedTitles: number[];

@@ -9,6 +9,7 @@ import type {
   GraphNode,
   GraphLink,
   Document,
+  TimeScope,
 } from './types';
 
 let cachedGraph: GraphData | null = null;
@@ -21,6 +22,8 @@ type ManifestItem =
 type TitlesManifest = { version: number; titles: ManifestItem[] };
 
 type RawGraph = { nodes: any[]; links: any[] };
+
+const scopedKey = (time: TimeScope, id: string) => `${time}::${id}`;
 
 async function fetchJson<T>(relPath: string): Promise<T> {
   const res = await fetch(`${import.meta.env.BASE_URL}${relPath}`);
@@ -40,16 +43,16 @@ async function loadRawGraphForTitle(title: number): Promise<RawGraph> {
   const meta = await fetchJson<{ parts: { file: string }[] }>(item.meta);
   const parts = await Promise.all(meta.parts.map((p) => fetchJson<RawGraph>(p.file)));
 
-  // Merge (de-dupe nodes by id)
+  // Merge (de-dupe nodes by time + id)
   const nodes: any[] = [];
   const links: any[] = [];
   const seen = new Set<string>();
 
   for (const part of parts) {
     for (const n of part.nodes ?? []) {
-      const id = String(n.id);
-      if (!seen.has(id)) {
-        seen.add(id);
+      const key = `${String(n.time)}::${String(n.id)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
         nodes.push(n);
       }
     }
@@ -66,6 +69,7 @@ function ensureGraphLoadedOrThrow() {
 }
 
 export async function fetchStats(): Promise<Stats> {
+  // TODO: replace with computed stats from cachedGraph if desired
   return {
     totalDocuments: { count: 9718 },
     totalTriples: { count: 44967 },
@@ -83,7 +87,6 @@ export async function fetchTagClusters(): Promise<TagCluster[]> {
 }
 
 export async function loadGraph(title: number): Promise<GraphData> {
-  // If you want to avoid reloading the same title repeatedly:
   if (cachedGraph && cachedTitle === title) return cachedGraph;
 
   const raw = await loadRawGraphForTitle(title);
@@ -126,9 +129,9 @@ export async function loadGraph(title: number): Promise<GraphData> {
       section: n.section,
       subsection: n.subsection,
       full_name: n.full_name,
-      text: n.text,
+      text: n.text ?? n.properties?.text,
       term_type: n.term_type,
-      section_text: n.text,
+      section_text: n.text ?? n.properties?.text,
       color: baseColor,
       baseColor,
     };
@@ -145,6 +148,8 @@ export async function loadGraph(title: number): Promise<GraphData> {
       source_title: l.source_title,
       weight: l.weight ?? 1,
       definition: l.definition,
+      location: l.location,
+      timestamp: l.timestamp,
     };
   });
 
@@ -161,39 +166,40 @@ export async function fetchRelationships(
   includeUndated: boolean,
   keywords: string,
   maxHops: number | null,
-  timeScope: 'pre-OBBBA' | 'post-OBBBA'
+  timeScope: TimeScope
 ): Promise<{ relationships: Relationship[]; totalBeforeLimit: number }> {
-  // Assumes App.tsx already called loadGraph(selectedTitle) first
   ensureGraphLoadedOrThrow();
 
-  let filteredLinks = cachedGraph!.links;
-  filteredLinks = filteredLinks.filter((l) => l.time === timeScope);
+  let filteredLinks = cachedGraph!.links.filter((l) => l.time === timeScope);
 
   if (categories.length > 0) {
     filteredLinks = filteredLinks.filter((link) => categories.includes(link.edge_type));
   }
 
-  const nodeMap = new Map(cachedGraph!.nodes.map((n) => [n.id, n]));
+  const nodeMap = new Map(
+    cachedGraph!.nodes.map((n) => [scopedKey(n.time as TimeScope, String(n.id)), n] as const)
+  );
 
   const relationships: Relationship[] = filteredLinks.slice(0, limit).map((link, idx) => {
     const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
     const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-    const sourceNode = nodeMap.get(sourceId);
-    const targetNode = nodeMap.get(targetId);
+
+    const sourceNode = nodeMap.get(scopedKey(timeScope, String(sourceId)));
+    const targetNode = nodeMap.get(scopedKey(timeScope, String(targetId)));
 
     return {
       id: idx,
-      doc_id: sourceId,
+      doc_id: String(sourceId),
       timestamp: (link as any).timestamp || null,
-      actor: sourceNode?.name || sourceId,
+      actor: sourceNode?.name || String(sourceId),
       action: link.action,
-      target: targetNode?.name || targetId,
+      target: targetNode?.name || String(targetId),
       location: (link as any).location || null,
       tags: [],
       actor_type: sourceNode?.node_type,
       target_type: targetNode?.node_type,
-      actor_id: sourceId,
-      target_id: targetId,
+      actor_id: String(sourceId),
+      target_id: String(targetId),
       definition: link.definition,
       actor_display_label: sourceNode?.display_label,
       target_display_label: targetNode?.display_label,
@@ -206,6 +212,7 @@ export async function fetchRelationships(
   };
 }
 
+// Back-compat: keep old name for now
 export async function fetchActorRelationships(
   actorId: string,
   clusterIds: number[],
@@ -214,49 +221,46 @@ export async function fetchActorRelationships(
   includeUndated: boolean,
   keywords: string,
   maxHops: number | null,
-  timeScope: 'pre-OBBBA' | 'post-OBBBA'
+  timeScope: TimeScope
 ): Promise<{ relationships: Relationship[]; totalBeforeFilter: number }> {
   ensureGraphLoadedOrThrow();
 
-  const nodeMap = new Map(cachedGraph!.nodes.map((n) => [n.id, n]));
-  const actorNode = nodeMap.get(actorId);
+  const actorNode = cachedGraph!.nodes.find((n) => n.id === actorId && n.time === timeScope);
+  if (!actorNode) return { relationships: [], totalBeforeFilter: 0 };
 
-  if (!actorNode) {
-    return { relationships: [], totalBeforeFilter: 0 };
-  }
+  const nodeMap = new Map(
+    cachedGraph!.nodes.map((n) => [scopedKey(n.time as TimeScope, String(n.id)), n] as const)
+  );
 
-  let relatedLinks = cachedGraph!.links.filter((link) => {
+  const relatedLinks = cachedGraph!.links.filter((link) => {
     const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
     const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-    return sourceId === actorNode.id || targetId === actorNode.id;
+    return link.time === timeScope && (sourceId === actorNode.id || targetId === actorNode.id);
   });
-
-  relatedLinks = relatedLinks.filter((l) => l.time === timeScope);
-
-  if (categories.length > 0) {
-    relatedLinks = relatedLinks.filter((link) => categories.includes(link.edge_type));
-  }
 
   const relationships: Relationship[] = relatedLinks.map((link, idx) => {
     const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
     const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-    const sourceNode = nodeMap.get(sourceId);
-    const targetNode = nodeMap.get(targetId);
+
+    const sourceNode = nodeMap.get(scopedKey(timeScope, String(sourceId)));
+    const targetNode = nodeMap.get(scopedKey(timeScope, String(targetId)));
 
     return {
       id: idx,
-      doc_id: sourceId,
+      doc_id: String(sourceId),
       timestamp: (link as any).timestamp || null,
-      actor: sourceNode?.name || sourceId,
+      actor: sourceNode?.name || String(sourceId),
       action: link.action,
-      target: targetNode?.name || targetId,
+      target: targetNode?.name || String(targetId),
       location: (link as any).location || null,
       tags: [],
       actor_type: sourceNode?.node_type,
       target_type: targetNode?.node_type,
-      actor_id: sourceId,
-      target_id: targetId,
+      actor_id: String(sourceId),
+      target_id: String(targetId),
       definition: link.definition,
+      actor_display_label: sourceNode?.display_label,
+      target_display_label: targetNode?.display_label,
     };
   });
 
@@ -266,10 +270,34 @@ export async function fetchActorRelationships(
   };
 }
 
+// Preferred new name (callers can migrate to this)
+export async function fetchNodeRelationships(
+  nodeId: string,
+  clusterIds: number[],
+  categories: string[],
+  yearRange: [number, number],
+  includeUndated: boolean,
+  keywords: string,
+  maxHops: number | null,
+  timeScope: TimeScope
+): Promise<{ relationships: Relationship[]; totalBeforeFilter: number }> {
+  return fetchActorRelationships(
+    nodeId,
+    clusterIds,
+    categories,
+    yearRange,
+    includeUndated,
+    keywords,
+    maxHops,
+    timeScope
+  );
+}
+
+// Back-compat: keep old name for now
 export async function fetchActorCounts(
   limit: number,
   actorIds?: string[],
-  timeScope?: 'pre-OBBBA' | 'post-OBBBA'
+  timeScope?: TimeScope
 ): Promise<Record<string, number>> {
   ensureGraphLoadedOrThrow();
 
@@ -291,12 +319,24 @@ export async function fetchActorCounts(
   return counts;
 }
 
-export async function searchActors(query: string): Promise<Actor[]> {
+// Preferred new name
+export async function fetchNodeCounts(
+  limit: number,
+  nodeIds?: string[],
+  timeScope?: TimeScope
+): Promise<Record<string, number>> {
+  return fetchActorCounts(limit, nodeIds, timeScope);
+}
+
+// Scope-aware search (timeScope is required)
+export async function searchActors(query: string, timeScope: TimeScope): Promise<Actor[]> {
   ensureGraphLoadedOrThrow();
 
   const lowerQuery = query.toLowerCase();
-  const matches = cachedGraph!.nodes
-    .filter((node) => node.name.toLowerCase().includes(lowerQuery))
+  const pool = cachedGraph!.nodes.filter((n) => n.time === timeScope);
+
+  const matches = pool
+    .filter((node) => (node.name ?? '').toLowerCase().includes(lowerQuery))
     .map((node) => ({
       id: node.id,
       name: node.name,
@@ -308,10 +348,9 @@ export async function searchActors(query: string): Promise<Actor[]> {
   return matches;
 }
 
-export async function fetchDocument(docId: string): Promise<Document> {
+export async function fetchDocument(docId: string, timeScope: TimeScope): Promise<Document> {
   ensureGraphLoadedOrThrow();
-
-  const node = cachedGraph!.nodes.find((n) => n.id === docId);
+  const node = cachedGraph!.nodes.find((n) => n.id === docId && n.time === timeScope);
 
   return {
     doc_id: docId,
@@ -322,19 +361,24 @@ export async function fetchDocument(docId: string): Promise<Document> {
     date_range_earliest: null,
     date_range_latest: null,
     full_name: node?.full_name,
-    text: node?.text,
+    text: (node as any)?.properties?.text ?? node?.text,
     title: node?.title,
     part: node?.part,
     chapter: node?.chapter,
     subchapter: node?.subchapter,
     section: node?.section,
+    subsection: node?.subsection,
+    subtitle: node?.subtitle,
   };
 }
 
-export async function fetchDocumentText(docId: string): Promise<{ text: string }> {
+export async function fetchDocumentText(
+  docId: string,
+  timeScope: TimeScope
+): Promise<{ text: string }> {
   ensureGraphLoadedOrThrow();
 
-  const node = cachedGraph!.nodes.find((n) => n.id === docId);
+  const node = cachedGraph!.nodes.find((n) => n.id === docId && n.time === timeScope);
 
   const text =
     (node as any)?.properties?.text ||
@@ -347,19 +391,12 @@ export async function fetchDocumentText(docId: string): Promise<{ text: string }
   return { text };
 }
 
-export async function fetchNodeDetails(nodeId: string): Promise<any> {
+export async function fetchNodeDetails(nodeId: string, timeScope: TimeScope): Promise<any> {
   ensureGraphLoadedOrThrow();
 
-  let node = cachedGraph!.nodes.find((n) => n.id === nodeId);
-
-  if (!node) {
-    node = cachedGraph!.nodes.find((n) => n.name === nodeId);
-  }
-
+  let node = cachedGraph!.nodes.find((n) => n.id === nodeId && n.time === timeScope);
+  if (!node) node = cachedGraph!.nodes.find((n) => n.name === nodeId && n.time === timeScope);
   if (!node) return null;
 
-  return {
-    ...node,
-    ...(node as any).properties,
-  };
+  return { ...node, ...(node as any).properties };
 }

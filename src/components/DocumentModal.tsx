@@ -21,6 +21,14 @@ interface MatchPosition {
   percentage: number;
 }
 
+const COMMON_WORDS = new Set([
+  'the', 'and', 'or', 'to', 'from', 'in', 'on', 'at', 'by', 'for', 'with',
+  'about', 'as', 'into', 'through', 'during', 'before', 'after', 'above',
+  'below', 'between', 'under', 'since', 'without', 'within', 'of', 'off',
+  'out', 'over', 'up', 'down', 'near', 'along', 'among', 'across', 'behind',
+  'beyond', 'plus', 'except', 'but', 'per', 'via', 'upon', 'against',
+]);
+
 export default function DocumentModal({
   docId,
   highlightTerm,
@@ -38,51 +46,61 @@ export default function DocumentModal({
   const contentRef = useRef<HTMLDivElement>(null);
   const matchRefs = useRef<Map<number, HTMLElement>>(new Map());
 
-  const commonWords = new Set([
-    'the', 'and', 'or', 'to', 'from', 'in', 'on', 'at', 'by', 'for', 'with',
-    'about', 'as', 'into', 'through', 'during', 'before', 'after', 'above',
-    'below', 'between', 'under', 'since', 'without', 'within', 'of', 'off',
-    'out', 'over', 'up', 'down', 'near', 'along', 'among', 'across', 'behind',
-    'beyond', 'plus', 'except', 'but', 'per', 'via', 'upon', 'against',
-  ]);
+  useEffect(() => {
+  let active = true;
+
+  const loadDocument = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [doc, textData, nodeDetails] = await Promise.all([
+        fetchDocument(docId, timeScope),
+        fetchDocumentText(docId, timeScope),
+        fetchNodeDetails(docId, timeScope),
+      ]);
+
+      if (!active) return;
+
+      setDocument({
+        ...doc,
+        title: nodeDetails?.title,
+        subtitle: nodeDetails?.subtitle,
+        full_name: nodeDetails?.full_name,
+        text: nodeDetails?.text,
+        part: nodeDetails?.part,
+        chapter: nodeDetails?.chapter,
+        subchapter: nodeDetails?.subchapter,
+        section: nodeDetails?.section,
+        subsection: nodeDetails?.subsection,
+        display_label: nodeDetails?.display_label,
+        index_heading: nodeDetails?.index_heading,
+      });
+
+      setDocumentText(textData.text);
+    } catch (err: any) {
+      // Ignore request cancellations (common during rapid timeScope switching)
+      if (err?.name === 'AbortError') return;
+
+      console.error('Error loading document:', err);
+      if (!active) return;
+
+      setError(err instanceof Error ? err.message : 'Failed to load section text');
+    } finally {
+      if (active) setLoading(false);
+    }
+  };
+
+  loadDocument();
+
+  return () => {
+    active = false;
+  };
+}, [docId, timeScope]);
 
   useEffect(() => {
-    const loadDocument = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const [doc, textData, nodeDetails] = await Promise.all([
-          fetchDocument(docId),
-          fetchDocumentText(docId),
-          fetchNodeDetails(docId)
-        ]);
-
-        setDocument({
-          ...doc,
-          title: nodeDetails?.title,
-          subtitle: nodeDetails?.subtitle,
-          full_name: nodeDetails?.full_name,
-          text: nodeDetails?.text,
-          part: nodeDetails?.part,
-          chapter: nodeDetails?.chapter,
-          subchapter: nodeDetails?.subchapter,
-          section: nodeDetails?.section,
-          subsection: nodeDetails?.subsection,
-          display_label: nodeDetails?.display_label,
-          index_heading: nodeDetails?.index_heading,
-        });
-        setDocumentText(textData.text);
-      } catch (err) {
-        console.error('Error loading document:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load section text');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDocument();
-  }, [docId, timeScope]);
+  matchRefs.current.clear();
+}, [docId, timeScope]);
 
   useEffect(() => {
     if (!documentText) return;
@@ -106,7 +124,7 @@ export default function DocumentModal({
     if (highlightTerm) {
       primaryPatterns.push(highlightTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       highlightTerm.split(/\s+/).forEach((word) => {
-        if (word.length >= 3 && !commonWords.has(word.toLowerCase())) {
+        if (word.length >= 3 && !COMMON_WORDS.has(word.toLowerCase())) {
           primaryPatterns.push(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         }
       });
@@ -115,7 +133,7 @@ export default function DocumentModal({
     if (secondaryHighlightTerm) {
       secondaryPatterns.push(secondaryHighlightTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       secondaryHighlightTerm.split(/\s+/).forEach((word) => {
-        if (word.length >= 3 && !commonWords.has(word.toLowerCase())) {
+        if (word.length >= 3 && !COMMON_WORDS.has(word.toLowerCase())) {
           secondaryPatterns.push(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         }
       });
@@ -162,7 +180,7 @@ export default function DocumentModal({
 
     positions.sort((a, b) => a.index - b.index);
     setMatchPositions(positions);
-  }, [documentText, highlightTerm, secondaryHighlightTerm, searchKeywords, commonWords]);
+  }, [documentText, highlightTerm, secondaryHighlightTerm, searchKeywords]);
 
   const scrollToMatch = (index: number) => {
     const element = matchRefs.current.get(index);
@@ -200,7 +218,7 @@ export default function DocumentModal({
       if (term) {
         patterns.push(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         term.split(/\s+/).forEach((word) => {
-          if (word.length >= 3 && !commonWords.has(word.toLowerCase())) {
+          if (word.length >= 3 && !COMMON_WORDS.has(word.toLowerCase())) {
             primaryWords.add(word.toLowerCase());
             patterns.push(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
           }
@@ -210,7 +228,7 @@ export default function DocumentModal({
       if (secondaryTerm) {
         patterns.push(secondaryTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         secondaryTerm.split(/\s+/).forEach((word) => {
-          if (word.length >= 3 && !commonWords.has(word.toLowerCase())) {
+          if (word.length >= 3 && !COMMON_WORDS.has(word.toLowerCase())) {
             secondaryWords.add(word.toLowerCase());
             patterns.push(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
           }
@@ -316,7 +334,10 @@ export default function DocumentModal({
   <div className="ml-auto flex gap-2">
     <button
       type="button"
-      onClick={() => onTimeScopeChange('pre-OBBBA')}
+      onClick={(e) => {
+  e.stopPropagation();
+  onTimeScopeChange('pre-OBBBA');
+}}
       className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
         timeScope === 'pre-OBBBA'
           ? 'bg-blue-600 text-white'
@@ -327,7 +348,10 @@ export default function DocumentModal({
     </button>
     <button
       type="button"
-      onClick={() => onTimeScopeChange('post-OBBBA')}
+      onClick={(e) => {
+  e.stopPropagation();
+  onTimeScopeChange('post-OBBBA');
+}}
       className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
         timeScope === 'post-OBBBA'
           ? 'bg-purple-600 text-white'
@@ -479,7 +503,10 @@ export default function DocumentModal({
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={(e) => {
+  e.stopPropagation();
+  onClose();
+}}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
           >
             Close

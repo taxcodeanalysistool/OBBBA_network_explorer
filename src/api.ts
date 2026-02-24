@@ -134,8 +134,15 @@ export async function loadGraph(title: number): Promise<GraphData> {
       section_text: n.text ?? n.properties?.text,
       color: baseColor,
       baseColor,
+      
+      // ← ADD THESE 4 LINES
+      has_changes: n.has_changes,
+      change_types: n.change_types,
+      affected_bills: n.affected_bills,
+      change_count: n.change_count,
     };
   });
+
 
   const links: GraphLink[] = raw.links.map((l) => {
     const edgeType = l.edge_type ?? 'reference';

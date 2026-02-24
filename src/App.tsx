@@ -78,8 +78,12 @@ function App() {
   const [maxHops, setMaxHops] = useState<number | null>(2000);
   const [minDensity, setMinDensity] = useState(50);
   const [enabledClusterIds, setEnabledClusterIds] = useState<Set<number>>(new Set());
-  const [enabledCategories, setEnabledCategories] = useState<Set<string>>(new Set());
+  const [enabledCategories, setEnabledCategories] = useState<Set<string>>(new Set(['reference']));
   const [enabledNodeTypes, setEnabledNodeTypes] = useState<Set<string>>(new Set(['index']));
+  const [showOnlyChangedNodes, setShowOnlyChangedNodes] = useState(false);
+  const [highlightChangedNodes, setHighlightChangedNodes] = useState(false);
+  const [enabledChangeTypes, setEnabledChangeTypes] = useState<Set<string>>(new Set());
+  const [selectedBills, setSelectedBills] = useState<Set<string>>(new Set());
   const [yearRange] = useState<[number, number]>([1980, 2025]);
   const [includeUndated] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<number>(26);
@@ -107,8 +111,17 @@ function App() {
     nodeRankingMode: 'global' | 'subgraph';
   } | null>(null);
 
+  const networkGraphRef = useRef<{ getSvgElement: () => SVGSVGElement | null }>(null);
+  const svgElement = networkGraphRef.current?.getSvgElement() ?? null;
+
   // A monotonically increasing "request id" for bottomUp search reruns; prevents older results from winning.
   const bottomUpRunIdRef = useRef(0);
+
+  const prevBillFiltersRef = useRef({
+    showOnlyChangedNodes: false,
+    enabledChangeTypes: new Set<string>(),
+    selectedBills: new Set<string>()
+  });
 
   const selectedNodeId = selectedNode?.id ?? null;
 
@@ -162,7 +175,6 @@ function App() {
 
         setFullGraph(data);
 
-
         // strongly recommended reset when switching titles
         setSelectedNode(null);
         setActorRelationships([]);
@@ -185,6 +197,38 @@ function App() {
   useEffect(() => {
     setBuilder(new NetworkBuilder(scopedFullGraph.nodes, scopedFullGraph.links));
   }, [scopedFullGraph.nodes, scopedFullGraph.links]);
+
+  const applyBillChangeFilters = useCallback(
+    (nodes: GraphNode[]) => {
+      let filtered = nodes;
+
+      // Filter 1: Show only changed nodes
+      if (showOnlyChangedNodes) {
+        filtered = filtered.filter(node => node.has_changes === true);
+      }
+
+      // Filter 2: Filter by specific change types
+      if (enabledChangeTypes.size > 0) {
+        filtered = filtered.filter(node => {
+          if (!node.change_types || node.change_types.length === 0) return false;
+          // Node must have at least one of the enabled change types
+          return node.change_types.some(type => enabledChangeTypes.has(type));
+        });
+      }
+
+      // Filter 3: Filter by specific bills
+      if (selectedBills.size > 0) {
+        filtered = filtered.filter(node => {
+          if (!node.affected_bills || node.affected_bills.length === 0) return false;
+          // Node must be affected by at least one of the selected bills
+          return node.affected_bills.some(bill => selectedBills.has(bill));
+        });
+      }
+
+      return filtered;
+    },
+    [showOnlyChangedNodes, enabledChangeTypes, selectedBills]
+  );
 
   const executeBottomUpSearch = useCallback(
     async (
@@ -226,7 +270,7 @@ function App() {
           seedNodeIds: [],
           expansionDepth: params.expansionDegree,
           maxNodesPerExpansion: 100,
-          maxTotalNodes: params.maxNodes,
+          maxTotalNodes: 10000,  // Set high limit so builder doesn't cap early
         };
 
         const filtered = builder.buildNetwork(builderState, params.searchLogic, params.nodeRankingMode);
@@ -234,19 +278,57 @@ function App() {
         // If another run started after this one, ignore these results.
         if (runId !== bottomUpRunIdRef.current) return;
 
-        let finalLinks = filtered.links;
+        // Step 1: Apply bill change filters FIRST to all matched nodes
+        const billFilteredNodes = applyBillChangeFilters(filtered.nodes);
+
+        // Step 1.5: Apply maxNodes limit to the bill-filtered nodes
+        let nodesToUse = billFilteredNodes;
+        let nodesWereCapped = false;
+
+        if (maxHops !== null && billFilteredNodes.length > maxHops) {
+          // Sort by degree before slicing
+          const nodeDegreeInFullGraph = new Map<string, number>();
+          filtered.links.forEach((link) => {
+            const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+            const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+            nodeDegreeInFullGraph.set(sourceId, (nodeDegreeInFullGraph.get(sourceId) || 0) + 1);
+            nodeDegreeInFullGraph.set(targetId, (nodeDegreeInFullGraph.get(targetId) || 0) + 1);
+          });
+
+          nodesToUse = [...billFilteredNodes]
+            .sort((a, b) => {
+              const degreeA = nodeDegreeInFullGraph.get(a.id) || 0;
+              const degreeB = nodeDegreeInFullGraph.get(b.id) || 0;
+              return degreeB - degreeA;
+            })
+            .slice(0, maxHops);
+
+          nodesWereCapped = true;
+        }
+
+        const billFilteredNodeIds = new Set(nodesToUse.map(n => n.id));
+
+        // Step 2: Filter links to only include bill-filtered nodes
+        let workingLinks = filtered.links.filter(link => {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          return billFilteredNodeIds.has(sourceId) && billFilteredNodeIds.has(targetId);
+        });
+
+        // Step 3: Apply relationship limit to the bill-filtered links
+        let finalLinks = workingLinks;
         let linksTruncated = false;
 
-        if (finalLinks.length > limit) {
+        if (workingLinks.length > limit) {
           const nodeDegrees = new Map<string, number>();
-          filtered.links.forEach((link) => {
+          workingLinks.forEach((link) => {
             const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
             const targetId = typeof link.target === 'string' ? link.target : link.target.id;
             nodeDegrees.set(sourceId, (nodeDegrees.get(sourceId) || 0) + 1);
             nodeDegrees.set(targetId, (nodeDegrees.get(targetId) || 0) + 1);
           });
 
-          finalLinks = [...filtered.links]
+          finalLinks = [...workingLinks]
             .sort((a, b) => {
               const sourceA = typeof a.source === 'string' ? a.source : a.source.id;
               const targetA = typeof a.target === 'string' ? a.target : a.target.id;
@@ -263,6 +345,7 @@ function App() {
           linksTruncated = true;
         }
 
+        // Step 4: Keep only nodes that are in the final links
         const nodesInFinalLinks = new Set<string>();
         finalLinks.forEach((link) => {
           const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
@@ -271,19 +354,19 @@ function App() {
           nodesInFinalLinks.add(targetId);
         });
 
-        const finalNodes = filtered.nodes.filter((n) => nodesInFinalLinks.has(n.id));
+        const finalNodes = nodesToUse.filter((n) => nodesInFinalLinks.has(n.id));
 
         setDisplayGraph({
           nodes: finalNodes,
           links: finalLinks,
-          truncated: filtered.truncated || linksTruncated,
+          truncated: filtered.truncated || linksTruncated || nodesWereCapped,
           matchedCount: filtered.matchedCount,
         });
 
         setDisplayGraphInfo({
           nodeCount: finalNodes.length,
           linkCount: finalLinks.length,
-          truncated: filtered.truncated || linksTruncated,
+          truncated: filtered.truncated || linksTruncated || nodesWereCapped,
           matchedCount: filtered.matchedCount,
         });
       } catch (error) {
@@ -292,7 +375,7 @@ function App() {
         if (!opts?.preservePreviousGraph) setLoading(false);
       }
     },
-    [builder, limit]
+    [builder, limit, maxHops, applyBillChangeFilters]
   );
 
   // Bottom-up: when timeScope changes AND a search is active, re-run the same stored search params in the new scope.
@@ -302,46 +385,74 @@ function App() {
 
     const hasSearch = bottomUpSearchKeywords.trim().length > 0;
 
+    // Check if bill filters changed (for active searches)
+    const billFiltersChanged = 
+      prevBillFiltersRef.current.showOnlyChangedNodes !== showOnlyChangedNodes ||
+      prevBillFiltersRef.current.enabledChangeTypes !== enabledChangeTypes ||
+      prevBillFiltersRef.current.selectedBills !== selectedBills;
+
+    // Update ref
+    prevBillFiltersRef.current = {
+      showOnlyChangedNodes,
+      enabledChangeTypes,
+      selectedBills
+    };
+
     if (!hasSearch) {
       // No search active: show a capped scoped graph (respect maxHops + limit)
-      const cappedNodes =
-        maxHops !== null && scopedFullGraph.nodes.length > maxHops
-          ? scopedFullGraph.nodes.slice(0, maxHops)
-          : scopedFullGraph.nodes;
 
-      const allowed = new Set(cappedNodes.map((n) => n.id));
+      // Step 1: Apply bill change filters FIRST
+      const billFilteredNodes = applyBillChangeFilters(scopedFullGraph.nodes);
 
-      let cappedLinks = scopedFullGraph.links.filter((l) => {
+      // Step 2: Apply node limit (maxHops)
+      let finalNodes = billFilteredNodes;
+      let nodesWereCapped = false;
+      if (maxHops !== null && billFilteredNodes.length > maxHops) {
+        finalNodes = billFilteredNodes.slice(0, maxHops);
+        nodesWereCapped = true;
+      }
+
+      const billFilteredNodeIds = new Set(finalNodes.map((n) => n.id));
+
+      // Step 3: Filter links to match bill-filtered nodes
+      let workingLinks = scopedFullGraph.links.filter((l) => {
         const s = typeof l.source === 'string' ? l.source : l.source.id;
         const t = typeof l.target === 'string' ? l.target : l.target.id;
-        return allowed.has(s) && allowed.has(t);
+        return billFilteredNodeIds.has(s) && billFilteredNodeIds.has(t);
       });
 
-      const linksWereCapped = cappedLinks.length > limit;
-      if (linksWereCapped) cappedLinks = cappedLinks.slice(0, limit);
-
-      const nodesWereCapped = cappedNodes.length !== scopedFullGraph.nodes.length;
+      // Step 4: Apply relationship limit
+      let finalLinks = workingLinks;
+      const linksWereCapped = workingLinks.length > limit;
+      if (linksWereCapped) {
+        finalLinks = workingLinks.slice(0, limit);
+      }
 
       setDisplayGraph({
-        nodes: cappedNodes,
-        links: cappedLinks,
+        nodes: finalNodes,
+        links: finalLinks,
         truncated: nodesWereCapped || linksWereCapped,
-        matchedCount: cappedNodes.length,
+        matchedCount: finalNodes.length,
       });
 
       setDisplayGraphInfo({
-        nodeCount: cappedNodes.length,
-        linkCount: cappedLinks.length,
+        nodeCount: finalNodes.length,
+        linkCount: finalLinks.length,
         truncated: nodesWereCapped || linksWereCapped,
-        matchedCount: cappedNodes.length,
+        matchedCount: finalNodes.length,
       });
 
       return;
     }
 
-    // Search is active: rerun only when we have both builder and stored params.
+    // Search is active: rerun when we have builder, params, OR when bill filters change
     if (!builder) return;
     if (!bottomUpSearchParams) return;
+
+    // If bill filters changed and we have an active search, re-run it from scratch
+    if (billFiltersChanged) {
+      console.log('🔄 Bill filters changed, re-running search from full graph...');
+    }
 
     // Preserve previous graph while recomputing in the new scope.
     executeBottomUpSearch(bottomUpSearchParams, { preservePreviousGraph: true }).finally(() => {
@@ -357,6 +468,10 @@ function App() {
     limit,
     scopedFullGraph,
     executeBottomUpSearch,
+    applyBillChangeFilters,
+    showOnlyChangedNodes,
+    enabledChangeTypes,
+    selectedBills,
   ]);
 
   useEffect(() => {
@@ -414,7 +529,7 @@ function App() {
         ],
       });
 
-      setEnabledCategories(new Set(['definition', 'reference', 'hierarchy']));
+      setEnabledCategories(new Set(['reference']));
       setIsInitialized(true);
     }
   }, [fullGraph]);
@@ -438,6 +553,9 @@ function App() {
     enabledClusterIds,
     enabledCategories,
     enabledNodeTypes,
+    showOnlyChangedNodes,
+    enabledChangeTypes,
+    selectedBills, 
     yearRange,
     includeUndated,
     keywords,
@@ -480,41 +598,51 @@ function App() {
         });
       }
 
-      let filteredRelationships = workingRelationships;
+      // Step 1: Build unique node set from working relationships
+      const uniqueNodes = new Set<string>();
+      workingRelationships.forEach((rel) => {
+        uniqueNodes.add(rel.actor_id ?? rel.actor);
+        uniqueNodes.add(rel.target_id ?? rel.target);
+      });
 
-      // Apply node limit
-      if (maxHops !== null) {
-        const nodeSet = new Set<string>();
+      // Step 2: Apply BILL FILTERS FIRST to all nodes
+      const nodesForBillFilter = scopedFullGraph.nodes.filter(n => uniqueNodes.has(n.id));
+      const billFilteredNodes = applyBillChangeFilters(nodesForBillFilter);
+      const billFilteredNodeIds = new Set(billFilteredNodes.map(n => n.id));
+
+      // Step 3: Filter relationships to only include bill-filtered nodes
+      let filteredRelationships = workingRelationships.filter((rel) => {
+        const actorId = rel.actor_id ?? rel.actor;
+        const targetId = rel.target_id ?? rel.target;
+        return billFilteredNodeIds.has(actorId) && billFilteredNodeIds.has(targetId);
+      });
+
+      // Step 4: NOW apply node limit to bill-filtered nodes
+      if (maxHops !== null && billFilteredNodes.length > maxHops) {
         const nodeDegree = new Map<string, number>();
 
-        workingRelationships.forEach((rel) => {
+        filteredRelationships.forEach((rel) => {
           const actorId = rel.actor_id ?? rel.actor;
           const targetId = rel.target_id ?? rel.target;
-
-          nodeSet.add(actorId);
-          nodeSet.add(targetId);
-
           nodeDegree.set(actorId, (nodeDegree.get(actorId) || 0) + 1);
           nodeDegree.set(targetId, (nodeDegree.get(targetId) || 0) + 1);
         });
 
-        if (nodeSet.size > maxHops) {
-          const sortedNodes = Array.from(nodeDegree.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, maxHops)
-            .map(([nodeId]) => nodeId);
+        const sortedNodes = Array.from(nodeDegree.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, maxHops)
+          .map(([nodeId]) => nodeId);
 
-          const allowedNodes = new Set(sortedNodes);
+        const allowedNodes = new Set(sortedNodes);
 
-          filteredRelationships = workingRelationships.filter((rel) => {
-            const actorId = rel.actor_id ?? rel.actor;
-            const targetId = rel.target_id ?? rel.target;
-            return allowedNodes.has(actorId) && allowedNodes.has(targetId);
-          });
-        }
+        filteredRelationships = filteredRelationships.filter((rel) => {
+          const actorId = rel.actor_id ?? rel.actor;
+          const targetId = rel.target_id ?? rel.target;
+          return allowedNodes.has(actorId) && allowedNodes.has(targetId);
+        });
       }
 
-      // Apply relationship limit
+      // Step 5: Apply relationship limit
       if (filteredRelationships.length > limit) {
         const nodeDegree = new Map<string, number>();
         filteredRelationships.forEach((rel) => {
@@ -539,18 +667,19 @@ function App() {
           .slice(0, limit);
       }
 
+      // Step 6: Count final unique nodes
+      const finalUniqueNodes = new Set<string>();
+      filteredRelationships.forEach((rel) => {
+        finalUniqueNodes.add(rel.actor_id ?? rel.actor);
+        finalUniqueNodes.add(rel.target_id ?? rel.target);
+      });
+
       setRelationships(filteredRelationships);
       setTotalBeforeLimit(workingRelationships.length);
       setActorTotalCounts(actorCounts);
 
-      const uniqueNodes = new Set<string>();
-      filteredRelationships.forEach((rel) => {
-        uniqueNodes.add(rel.actor_id ?? rel.actor);
-        uniqueNodes.add(rel.target_id ?? rel.target);
-      });
-
       setTopDownGraphInfo({
-        nodeCount: uniqueNodes.size,
+        nodeCount: finalUniqueNodes.size,
         linkCount: filteredRelationships.length,
       });
 
@@ -576,24 +705,32 @@ function App() {
     [timeScope]
   );
 
-  const switchTimeScope = useCallback(
-    (next: TimeScope) => {
-      setIsSwitchingScope(true);
-      setTimeScope(next);
+const switchTimeScope = useCallback(
+  (next: TimeScope) => {
+    setIsSwitchingScope(true);
+    setTimeScope(next);
 
-      setSelectedNode((prev) => {
-  const anchorId = openDocId ?? prev?.id;
-  if (!anchorId) return prev;
-  const exists = fullGraph.nodes.some((n) => n.id === anchorId && n.time === next);
-  if (!exists) return prev; // keep out-of-scope with old scope
-  return { id: anchorId, scope: next }; // ← THIS LINE should always run when exists is true
-});
+    // Clear bill change filters when switching to Pre-OBBBA (no changes exist there)
+    if (next === 'pre-OBBBA') {
+      setShowOnlyChangedNodes(false);
+      setHighlightChangedNodes(false);
+      setEnabledChangeTypes(new Set());
+      setSelectedBills(new Set());
+    }
 
+    setSelectedNode((prev) => {
+      const anchorId = openDocId ?? prev?.id;
+      if (!anchorId) return prev;
+      const exists = fullGraph.nodes.some((n) => n.id === anchorId && n.time === next);
+      if (!exists) return prev;
+      return { id: anchorId, scope: next };
+    });
 
-      if (openDocId) setIsRightSidebarOpen(true);
-    },
-    [fullGraph.nodes, openDocId]
-  );
+    if (openDocId) setIsRightSidebarOpen(true);
+  },
+  [fullGraph.nodes, openDocId]
+);
+
 
   const toggleCluster = useCallback((clusterId: number) => {
     setEnabledClusterIds((prev) => {
@@ -631,6 +768,30 @@ function App() {
     });
   }, []);
 
+  const toggleChangeType = useCallback((changeType: string) => {
+    setEnabledChangeTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(changeType)) {
+        next.delete(changeType);
+      } else {
+        next.add(changeType);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleBill = useCallback((bill: string) => {
+    setSelectedBills((prev) => {
+      const next = new Set(prev);
+      if (next.has(bill)) {
+        next.delete(bill);
+      } else {
+        next.add(bill);
+      }
+      return next;
+    });
+  }, []);
+
   const handleCloseWelcome = useCallback(() => {
     localStorage.setItem('hasSeenWelcome', 'true');
     setShowWelcome(false);
@@ -641,7 +802,6 @@ function App() {
     const isOutOfScope = !!selectedNode && selectedNode.scope !== timeScope;
 
     if (!id || isOutOfScope) {
-      // During scope flips, keep last relationships visible until the new scope loads.
       if (!isSwitchingScope) {
         setActorRelationships([]);
         setActorTotalBeforeFilter(0);
@@ -735,7 +895,6 @@ function App() {
         maxNodes: maxHops || 1500,
       };
 
-      // Store params so we can rerun on timeScope flips.
       setBottomUpSearchParams(effective);
       setBottomUpSearchKeywords(params.keywords);
       setBuildMode('bottomUp');
@@ -773,6 +932,34 @@ function App() {
     loadData();
   }, []);
 
+  const { availableChangeTypes, availableBills } = useMemo(() => {
+    const nodesToCheck = scopedFullGraph?.nodes || [];
+
+    if (nodesToCheck.length === 0) {
+      return {
+        availableChangeTypes: [],
+        availableBills: []
+      };
+    }
+
+    const changeTypes = new Set<string>();
+    const bills = new Set<string>();
+
+    nodesToCheck.forEach(node => {
+      if (node.change_types) {
+        node.change_types.forEach(type => changeTypes.add(type));
+      }
+      if (node.affected_bills) {
+        node.affected_bills.forEach(bill => bills.add(bill));
+      }
+    });
+
+    return {
+      availableChangeTypes: Array.from(changeTypes).sort(),
+      availableBills: Array.from(bills).sort()
+    };
+  }, [scopedFullGraph]);
+
   return (
     <>
       <div className="flex h-screen bg-gray-900 text-white">
@@ -797,6 +984,16 @@ function App() {
             onToggleCategory={toggleCategory}
             enabledNodeTypes={enabledNodeTypes}
             onToggleNodeType={toggleNodeType}
+            showOnlyChangedNodes={showOnlyChangedNodes}
+            onToggleShowOnlyChangedNodes={setShowOnlyChangedNodes}
+            highlightChangedNodes={highlightChangedNodes}
+            onToggleHighlightChangedNodes={setHighlightChangedNodes}
+            enabledChangeTypes={enabledChangeTypes}
+            onToggleChangeType={toggleChangeType}
+            selectedBills={selectedBills}
+            onToggleSelectedBill={toggleBill}
+            availableChangeTypes={availableChangeTypes}
+            availableBills={availableBills}  
             yearRange={yearRange}
             onYearRangeChange={() => {}}
             includeUndated={includeUndated}
@@ -814,6 +1011,9 @@ function App() {
             onBottomUpSearch={handleBottomUpSearch}
             displayGraphInfo={displayGraphInfo}
             topDownGraphInfo={topDownGraphInfo}
+            graphData={buildMode === 'topDown' ? scopedFullGraph : displayGraph}
+            svgElement={svgElement}
+            searchTerm={bottomUpSearchKeywords || undefined}
           />
         </div>
 
@@ -833,6 +1033,7 @@ function App() {
             </div>
           ) : (
             <NetworkGraph
+              ref={networkGraphRef}
               key={`${selectedTitle}::${buildMode}::${timeScope}`}
               graphData={buildMode === 'bottomUp' ? displayGraph : undefined}
               relationships={buildMode === 'topDown' ? relationships : undefined}
@@ -843,6 +1044,10 @@ function App() {
               enabledCategories={enabledCategories}
               enabledNodeTypes={enabledNodeTypes}
               timeScope={timeScope}
+              highlightChangedNodes={highlightChangedNodes}  // ← ADD THIS
+              enabledChangeTypes={enabledChangeTypes}  // ← ADD THIS
+              selectedBills={selectedBills}
+              nodeMetadata={scopedFullGraph.nodes}
             />
           )}
         </div>

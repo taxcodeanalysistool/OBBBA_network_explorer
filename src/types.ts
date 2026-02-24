@@ -9,6 +9,15 @@ export type SelectedNode = {
   scope: TimeScope;
 } | null;
 
+// ← NEW: Bill change types
+export type ChangeType = 'unspecified' | 'nt new' | 'prec' | string;
+
+export interface BillChange {
+  type_of_change: string;
+  public_law?: string;
+  bill_section?: string;
+}
+
 export interface GraphNode extends d3.SimulationNodeDatum {
   id: string;
   name: string;
@@ -23,6 +32,12 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   totalVal?: number;
   color?: string;
   baseColor?: string;
+
+  // ← NEW: Bill change tracking
+  has_changes?: boolean;
+  change_types?: string[];
+  affected_bills?: string[];
+  change_count?: number;
 
   // Hierarchy fields (parsed from node name)
   title?: string | null;
@@ -39,6 +54,7 @@ export interface GraphNode extends d3.SimulationNodeDatum {
     full_name?: string;
     text?: string;
     definition?: string;
+    bill_data?: BillChange[];  // ← NEW: Detailed bill change array
     [key: string]: any;
   };
 

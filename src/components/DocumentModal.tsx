@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { fetchDocument, fetchDocumentText, fetchNodeDetails } from '../api';
-import type { Document } from '../types';
+import type { Document, GraphNode } from '../types';
 
 interface DocumentModalProps {
   docId: string;
@@ -43,64 +43,67 @@ export default function DocumentModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchPositions, setMatchPositions] = useState<MatchPosition[]>([]);
+  const [nodeDetails, setNodeDetails] = useState<GraphNode | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const matchRefs = useRef<Map<number, HTMLElement>>(new Map());
 
   useEffect(() => {
-  let active = true;
+    let active = true;
 
-  const loadDocument = async () => {
-    setLoading(true);
-    setError(null);
+    const loadDocument = async () => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const [doc, textData, nodeDetails] = await Promise.all([
-        fetchDocument(docId, timeScope),
-        fetchDocumentText(docId, timeScope),
-        fetchNodeDetails(docId, timeScope),
-      ]);
+      try {
+        const [doc, textData, details] = await Promise.all([
+          fetchDocument(docId, timeScope),
+          fetchDocumentText(docId, timeScope),
+          fetchNodeDetails(docId, timeScope),
+        ]);
 
-      if (!active) return;
+        if (!active) return;
 
-      setDocument({
-        ...doc,
-        title: nodeDetails?.title,
-        subtitle: nodeDetails?.subtitle,
-        full_name: nodeDetails?.full_name,
-        text: nodeDetails?.text,
-        part: nodeDetails?.part,
-        chapter: nodeDetails?.chapter,
-        subchapter: nodeDetails?.subchapter,
-        section: nodeDetails?.section,
-        subsection: nodeDetails?.subsection,
-        display_label: nodeDetails?.display_label,
-        index_heading: nodeDetails?.index_heading,
-      });
+        setNodeDetails(details);
 
-      setDocumentText(textData.text);
-    } catch (err: any) {
-      // Ignore request cancellations (common during rapid timeScope switching)
-      if (err?.name === 'AbortError') return;
+        setDocument({
+          ...doc,
+          title: details?.title,
+          subtitle: details?.subtitle,
+          full_name: details?.full_name,
+          text: details?.text,
+          part: details?.part,
+          chapter: details?.chapter,
+          subchapter: details?.subchapter,
+          section: details?.section,
+          subsection: details?.subsection,
+          display_label: details?.display_label,
+          index_heading: details?.index_heading,
+        });
 
-      console.error('Error loading document:', err);
-      if (!active) return;
+        setDocumentText(textData.text);
+      } catch (err: any) {
+        // Ignore request cancellations (common during rapid timeScope switching)
+        if (err?.name === 'AbortError') return;
 
-      setError(err instanceof Error ? err.message : 'Failed to load section text');
-    } finally {
-      if (active) setLoading(false);
-    }
-  };
+        console.error('Error loading document:', err);
+        if (!active) return;
 
-  loadDocument();
+        setError(err instanceof Error ? err.message : 'Failed to load section text');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
 
-  return () => {
-    active = false;
-  };
-}, [docId, timeScope]);
+    loadDocument();
+
+    return () => {
+      active = false;
+    };
+  }, [docId, timeScope]);
 
   useEffect(() => {
-  matchRefs.current.clear();
-}, [docId, timeScope]);
+    matchRefs.current.clear();
+  }, [docId, timeScope]);
 
   useEffect(() => {
     if (!documentText) return;
@@ -305,6 +308,19 @@ export default function DocumentModal({
     }
   };
 
+  // Helper function to format change type labels
+  const formatChangeType = (type: string): string => {
+    const labels: Record<string, string> = {
+      'unspecified': 'Unspecified',
+      'nt new': 'Note (New)',
+      'prec': 'Preceding',
+      'amd': 'Amendment',
+      'new': 'New',
+      'repealed': 'Repealed'
+    };
+    return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
@@ -315,55 +331,23 @@ export default function DocumentModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-gray-700 flex justify-between items-start">
-          <div className="flex-1">
-              <div className="flex items-center gap-2 mb-3">
-  <h2 className="text-2xl font-semibold text-blue-400">
-    {document?.display_label || document?.name || document?.doc_id || docId}
-  </h2>
+          <div className="flex-1 pr-4">
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-2xl font-semibold text-blue-400">
+                {document?.display_label || document?.name || document?.doc_id || docId}
+              </h2>
 
-  <span
-    className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
-      timeScope === 'pre-OBBBA'
-        ? 'bg-gray-700 text-gray-200'
-        : 'bg-purple-600 text-white'
-    }`}
-  >
-    {timeScope === 'pre-OBBBA' ? 'Pre-OBBBA' : 'Post-OBBBA'}
-  </span>
+              <span
+                className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
+                  timeScope === 'pre-OBBBA'
+                    ? 'bg-gray-700 text-gray-200'
+                    : 'bg-purple-600 text-white'
+                }`}
+              >
+                {timeScope === 'pre-OBBBA' ? 'Pre-OBBBA' : 'Post-OBBBA'}
+              </span>
+            </div>
 
-  <div className="ml-auto flex gap-2">
-    <button
-      type="button"
-      onClick={(e) => {
-  e.stopPropagation();
-  onTimeScopeChange('pre-OBBBA');
-}}
-      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-        timeScope === 'pre-OBBBA'
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-      }`}
-    >
-      Pre
-    </button>
-    <button
-      type="button"
-      onClick={(e) => {
-  e.stopPropagation();
-  onTimeScopeChange('post-OBBBA');
-}}
-      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-        timeScope === 'post-OBBBA'
-          ? 'bg-purple-600 text-white'
-          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-      }`}
-    >
-      Post
-    </button>
-  </div>
-</div>
-
-          
             {document && (document.title || document.part || document.chapter || document.subchapter || document.section) && (
               <div className="space-y-1 text-sm text-gray-300 mb-3 font-mono">
                 {document.title && (
@@ -408,19 +392,79 @@ export default function DocumentModal({
                 )}
               </div>
             )}
-            
+
             {document && document.full_name && !document.title && !document.section && (
               <h3 className="text-lg font-medium text-gray-400 mb-1">
                 {document.full_name}
               </h3>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="ml-4 text-gray-400 hover:text-white text-2xl leading-none transition-colors"
-          >
-            ✕
-          </button>
+
+          {/* Right side: Time scope buttons and bill changes indicator */}
+          <div className="flex flex-col gap-3 items-end flex-shrink-0">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTimeScopeChange('pre-OBBBA');
+                }}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                  timeScope === 'pre-OBBBA'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                Pre
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTimeScopeChange('post-OBBBA');
+                }}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                  timeScope === 'post-OBBBA'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                Post
+              </button>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white text-xl leading-none transition-colors px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Bill Changes Indicator - Only show in Post-OBBBA mode */}
+            {timeScope === 'post-OBBBA' && nodeDetails?.has_changes && (
+              <div className="p-3 bg-gray-700 border border-gray-600 rounded-lg text-xs text-gray-300 min-w-[240px]">
+                <div className="space-y-1.5">
+                  <div>
+                    <span className="font-semibold text-gray-200">Number of changes:</span>{' '}
+                    {nodeDetails.change_count || 0}
+                  </div>
+
+                  {nodeDetails.change_types && nodeDetails.change_types.length > 0 && (
+                    <div>
+                      <span className="font-semibold text-gray-200">Type of changes:</span>{' '}
+                      {nodeDetails.change_types.map(formatChangeType).join(', ')}
+                    </div>
+                  )}
+
+                  {nodeDetails.affected_bills && nodeDetails.affected_bills.length > 0 && (
+                    <div>
+                      <span className="font-semibold text-gray-200">Changed by:</span>{' '}
+                      {nodeDetails.affected_bills.map(bill => `P.L. ${bill}`).join(', ')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 pr-12 relative" ref={contentRef}>
@@ -504,9 +548,9 @@ export default function DocumentModal({
           </div>
           <button
             onClick={(e) => {
-  e.stopPropagation();
-  onClose();
-}}
+              e.stopPropagation();
+              onClose();
+            }}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
           >
             Close

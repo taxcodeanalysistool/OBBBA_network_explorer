@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import { WelcomeModal } from './components/WelcomeModal';
+import TableView from './components/TableView';
 import { NetworkBuilder } from './services/networkBuilder';
 import DocumentModal from './components/DocumentModal';
 import { fetchRelationships, fetchActorRelationships, fetchActorCounts } from './api';
@@ -23,6 +24,7 @@ import type {
 
 function App() {
   const [buildMode, setBuildMode] = useState<'topDown' | 'bottomUp'>('topDown');
+  const [viewMode, setViewMode] = useState<'graph' | 'table'>('graph');
   const [timeScope, setTimeScope] = useState<TimeScope>('pre-OBBBA');
   const [openDocId, setOpenDocId] = useState<string | null>(null);
   const [fullGraph, setFullGraph] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({
@@ -1017,39 +1019,70 @@ const switchTimeScope = useCallback(
           />
         </div>
 
-        <div className="flex-1 relative pb-16 lg:pb-0">
+        <div className="flex-1 relative pb-16 lg:pb-0 overflow-hidden min-w-0">
+  {/* Graph / Table Toggle — bottom left, next to sidebar */}
+  <div className="absolute bottom-14 left-4 z-20 flex rounded-lg overflow-hidden border border-gray-600">
+    <button
+      className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+        viewMode === 'graph'
+          ? 'bg-blue-600 text-white'
+          : 'bg-gray-800 text-gray-400 hover:text-white'
+      }`}
+      onClick={() => setViewMode('graph')}
+    >
+      Graph
+    </button>
+    <button
+      className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+        viewMode === 'table'
+          ? 'bg-blue-600 text-white'
+          : 'bg-gray-800 text-gray-400 hover:text-white'
+      }`}
+      onClick={() => setViewMode('table')}
+    >
+      Table
+    </button>
+  </div>
           {buildMode === 'bottomUp' && displayGraph.truncated && (
             <div className="absolute top-4 left-4 z-10 bg-yellow-100 border border-yellow-400 text-yellow-900 px-4 py-2 rounded shadow-lg">
               ⚠ Showing {displayGraph.nodes.length} of {displayGraph.matchedCount} matching nodes
             </div>
           )}
 
-          {loading ? (
-            <div className="flex items-center justify-center h-full bg-gray-900">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading network data...</p>
-              </div>
-            </div>
-          ) : (
-            <NetworkGraph
-              ref={networkGraphRef}
-              key={`${selectedTitle}::${buildMode}::${timeScope}`}
-              graphData={buildMode === 'bottomUp' ? displayGraph : undefined}
-              relationships={buildMode === 'topDown' ? relationships : undefined}
-              selectedNode={selectedNode}
-              onNodeClick={handleNodeClick}
-              minDensity={minDensity}
-              actorTotalCounts={actorTotalCounts}
-              enabledCategories={enabledCategories}
-              enabledNodeTypes={enabledNodeTypes}
-              timeScope={timeScope}
-              highlightChangedNodes={highlightChangedNodes}  // ← ADD THIS
-              enabledChangeTypes={enabledChangeTypes}  // ← ADD THIS
-              selectedBills={selectedBills}
-              nodeMetadata={scopedFullGraph.nodes}
-            />
-          )}
+{loading ? (
+  <div className="flex items-center justify-center h-full bg-gray-900">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+      <p className="text-gray-400">Loading network data...</p>
+    </div>
+  </div>
+) : viewMode === 'table' ? (
+  <TableView
+    nodes={buildMode === 'bottomUp' ? displayGraph.nodes : scopedFullGraph.nodes}
+    links={buildMode === 'bottomUp' ? displayGraph.links : scopedFullGraph.links}
+    timeScope={timeScope}
+    onNodeClick={handleNodeClick}
+  />
+) : (
+  <NetworkGraph
+    ref={networkGraphRef}
+    key={`${selectedTitle}::${buildMode}::${timeScope}`}
+    graphData={buildMode === 'bottomUp' ? displayGraph : undefined}
+    relationships={buildMode === 'topDown' ? relationships : undefined}
+    selectedNode={selectedNode}
+    onNodeClick={handleNodeClick}
+    minDensity={minDensity}
+    actorTotalCounts={actorTotalCounts}
+    enabledCategories={enabledCategories}
+    enabledNodeTypes={enabledNodeTypes}
+    timeScope={timeScope}
+    highlightChangedNodes={highlightChangedNodes}
+    enabledChangeTypes={enabledChangeTypes}
+    selectedBills={selectedBills}
+    nodeMetadata={scopedFullGraph.nodes}
+  />
+)}
+
         </div>
 
         <div className="hidden lg:block">

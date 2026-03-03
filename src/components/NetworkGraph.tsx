@@ -27,7 +27,6 @@ interface NetworkGraphProps {
 
   timeScope: TimeScope;
 
-  // Bill changes highlighting
   highlightChangedNodes?: boolean;
   enabledChangeTypes?: Set<string>;
   selectedBills?: Set<string>;
@@ -36,7 +35,6 @@ interface NetworkGraphProps {
 interface NetworkGraphHandle {
   getSvgElement: () => SVGSVGElement | null;
 }
-
 
 function baseColorForType(t?: NodeType): string {
   switch (t) {
@@ -65,9 +63,9 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
 }: NetworkGraphProps, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   useImperativeHandle(ref, () => ({
-  getSvgElement: () => svgRef.current,
-}));
-  
+    getSvgElement: () => svgRef.current,
+  }));
+
   const simulationRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
@@ -84,7 +82,6 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
   const [onDemandCounts, setOnDemandCounts] = useState<Record<string, number>>({});
   const [displayLabels, setDisplayLabels] = useState<Record<string, string>>({});
 
-  // Only treat selection as "active" if it belongs to the currently displayed timeScope.
   const selectedNodeId =
     selectedNode && selectedNode.scope === timeScope ? selectedNode.id : null;
 
@@ -92,7 +89,7 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
     const map = new Map<string, GraphNode>();
     nodeMetadata.forEach((n) => map.set(n.id, n));
     return map;
-  }, [nodeMetadata]);  
+  }, [nodeMetadata]);
 
   const labelKey = (id: string) => `${timeScope}::${id}`;
 
@@ -115,40 +112,42 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
     return null;
   };
 
-  // Helper function to determine if a node should be highlighted
   const shouldHighlightNode = useCallback((node: GraphNode): boolean => {
-  if (!highlightChangedNodes) return false;
+    if (!highlightChangedNodes) return false;
 
-  // Look up full metadata — top-down nodes may be missing these fields
-  const meta = nodeMetadataMap.get(node.id) ?? node;
+    const meta = nodeMetadataMap.get(node.id) ?? node;
 
-  if (!meta.has_changes) return false;
+    if (!meta.has_changes) return false;
 
-  // If no specific filters are set, highlight all changed nodes
-  if (enabledChangeTypes.size === 0 && selectedBills.size === 0) {
+    if (enabledChangeTypes.size === 0 && selectedBills.size === 0) {
+      return true;
+    }
+
+    if (enabledChangeTypes.size > 0) {
+      const hasMatchingType = meta.change_types?.some(type =>
+        enabledChangeTypes.has(type)
+      );
+      if (!hasMatchingType) return false;
+    }
+
+    if (selectedBills.size > 0) {
+      const hasMatchingBill = meta.affected_bills?.some(bill =>
+        selectedBills.has(bill)
+      );
+      if (!hasMatchingBill) return false;
+    }
+
     return true;
-  }
-
-  if (enabledChangeTypes.size > 0) {
-    const hasMatchingType = meta.change_types?.some(type =>
-      enabledChangeTypes.has(type)
-    );
-    if (!hasMatchingType) return false;
-  }
-
-  if (selectedBills.size > 0) {
-    const hasMatchingBill = meta.affected_bills?.some(bill =>
-      selectedBills.has(bill)
-    );
-    if (!hasMatchingBill) return false;
-  }
-
-  return true;
-}, [highlightChangedNodes, enabledChangeTypes, selectedBills, nodeMetadataMap]);
-
-
+  }, [highlightChangedNodes, enabledChangeTypes, selectedBills, nodeMetadataMap]);
 
   const graphData = useMemo(() => {
+    const sectionColorScale = d3.scaleSequential((t: number) =>
+      d3.interpolateRgb('#9B96C9', '#41378F')(t)
+    );
+    const entityConceptColorScale = d3.scaleSequential((t: number) =>
+      d3.interpolateRgb('#F9D99B', '#F0A734')(t)
+    );
+
     if (externalGraphData) {
       const validNodeIds = new Set(externalGraphData.nodes.map((n) => n.id));
 
@@ -158,10 +157,37 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
         return validNodeIds.has(sourceId) && validNodeIds.has(targetId);
       });
 
-      return {
-        nodes: externalGraphData.nodes,
-        links: validLinks,
-      };
+      // Recompute degree-based colors from scratch on every render
+      const degreeMap = new Map<string, number>();
+      validLinks.forEach((link) => {
+        const s = typeof link.source === 'string' ? link.source : link.source.id;
+        const t = typeof link.target === 'string' ? link.target : link.target.id;
+        degreeMap.set(s, (degreeMap.get(s) || 0) + 1);
+        degreeMap.set(t, (degreeMap.get(t) || 0) + 1);
+      });
+
+      const maxDegree = Math.max(...Array.from(degreeMap.values()), 1);
+
+      const nodes = externalGraphData.nodes.map((node) => {
+        const degree = degreeMap.get(node.id) || 1;
+        const t = degree / maxDegree;
+
+        let color = baseColorForType(node.node_type);
+        if (node.node_type === 'section' || node.node_type === 'index') {
+          color = sectionColorScale(t);
+        } else if (node.node_type === 'entity' || node.node_type === 'concept') {
+          color = entityConceptColorScale(t);
+        }
+
+        return {
+          ...node,
+          val: degree,
+          color,
+          baseColor: color,
+        };
+      });
+
+      return { nodes, links: validLinks };
     }
 
     if (!relationships || relationships.length === 0) {
@@ -237,13 +263,6 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
 
     const maxVal = Math.max(...allNodes.map((n) => n.val ?? 1), 1);
     const strength = (v: number) => v / maxVal;
-
-    const sectionColorScale = d3.scaleSequential((t: number) =>
-      d3.interpolateRgb('#9B96C9', '#41378F')(t)
-    );
-    const entityConceptColorScale = d3.scaleSequential((t: number) =>
-      d3.interpolateRgb('#F9D99B', '#F0A734')(t)
-    );
 
     const nodes = allNodes.map((node) => {
       const t = strength(node.val ?? 1);
@@ -403,9 +422,8 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
       .append('circle')
       .attr('r', (d) => radiusScale(d.val ?? 1))
       .attr('fill', (d) => {
-        // Apply magenta highlight if conditions are met
         if (shouldHighlightNode(d)) {
-          return '#9C3391'; // Magenta for highlighted changed nodes
+          return '#9C3391';
         }
         return d.color || d.baseColor || baseColorForType(d.node_type);
       })
@@ -536,17 +554,12 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
     nodeGroupRef.current
       .selectAll('circle')
       .attr('fill', (d: any) => {
-        // Priority 1: Selected node (cyan)
         if (selectedNodeId && d.id === selectedNodeId) {
           return '#06b6d4';
         }
-
-        // Priority 2: Highlighted changed node (magenta)
         if (shouldHighlightNode(d)) {
           return '#9C3391';
         }
-
-        // Priority 3: Base color
         return d.baseColor;
       });
 

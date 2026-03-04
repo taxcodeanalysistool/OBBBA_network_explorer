@@ -14,6 +14,8 @@ type SortKey =
   | 'subsection' | 'display_label' | 'index_heading'
   | 'has_changes' | 'change_count' | 'change_types'
   | 'affected_bills' | 'degree'
+  | 'gm_degree' | 'gm_pagerank' | 'gm_betweenness'    // ✅ add
+  | 'gm_eigenvector' | 'gm_closeness' | 'gm_harmonic' // ✅ add
   | 'text' | 'adjectives' | 'verbs';
 
 type SortDir = 'asc' | 'desc';
@@ -26,7 +28,14 @@ const ALL_COLUMNS: { key: SortKey; label: string; defaultVisible: boolean }[] = 
   { key: 'subsection',     label: 'Subsection',     defaultVisible: true },
   { key: 'node_type',      label: 'Type',           defaultVisible: true },
   { key: 'time',           label: 'Scope',          defaultVisible: false },
-  { key: 'degree',         label: 'Connections',    defaultVisible: true  },
+  { key: 'degree',      label: 'Connections',      defaultVisible: true  },
+  { key: 'gm_degree',      label: 'Degree (metric)',      defaultVisible: false },
+  { key: 'gm_pagerank',    label: 'PageRank',             defaultVisible: false },
+  { key: 'gm_betweenness', label: 'Betweenness',          defaultVisible: false },
+  { key: 'gm_eigenvector', label: 'Eigenvector',          defaultVisible: false },
+  { key: 'gm_closeness',   label: 'Closeness',            defaultVisible: false },
+  { key: 'gm_harmonic',    label: 'Harmonic',             defaultVisible: false },
+
   { key: 'has_changes',    label: 'Changed',        defaultVisible: false  },
   { key: 'change_count',   label: 'Change Count',   defaultVisible: true },
   { key: 'change_types',   label: 'Change Types',   defaultVisible: true  },
@@ -46,6 +55,12 @@ const ALL_COLUMNS: { key: SortKey; label: string; defaultVisible: boolean }[] = 
 
 function getCellValue(node: GraphNode, key: SortKey, degreeMap: Map<string, number>): string | number | boolean {
   if (key === 'degree') return degreeMap.get(node.id) || 0;
+  if (key === 'gm_degree')      return node.graph_measures?.degree      ?? '—';
+  if (key === 'gm_pagerank')    return node.graph_measures?.pagerank     ?? '—';
+  if (key === 'gm_betweenness') return node.graph_measures?.betweenness  ?? '—';
+  if (key === 'gm_eigenvector') return node.graph_measures?.eigenvector  ?? '—';
+  if (key === 'gm_closeness')   return node.graph_measures?.closeness    ?? '—';
+  if (key === 'gm_harmonic')    return node.graph_measures?.harmonic     ?? '—';
   if (key === 'change_types') return (node.change_types || []).join(', ');
   if (key === 'affected_bills') return (node.affected_bills || []).join(', ');
   if (key === 'has_changes') return node.has_changes ? 'Yes' : 'No';
@@ -74,9 +89,23 @@ function renderCell(node: GraphNode, key: SortKey, degreeMap: Map<string, number
   if (key === 'display_label') return (
     <span style={{ color: '#93c5fd', fontWeight: 500 }}>{String(val)}</span>
   );
-  if (key === 'degree') return (
-    <span style={{ color: '#d1d5db' }}>{String(val)}</span>
-  );
+  if (key === 'gm_degree' || key === 'gm_eigenvector' || 
+    key === 'gm_closeness' || key === 'gm_harmonic') return (
+  <span style={{ color: '#d1d5db', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+    {val === '—' ? '—' : Number(val).toFixed(4)}
+  </span>
+);
+if (key === 'gm_pagerank') return (
+  <span style={{ color: '#d1d5db', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+    {val === '—' ? '—' : Number(val).toFixed(6)}
+  </span>
+);
+if (key === 'gm_betweenness') return (
+  <span style={{ color: '#d1d5db', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+    {val === '—' ? '—' : Number(val).toFixed(6)}
+  </span>
+);
+
   if (key === 'text') return (
     <span style={{ fontSize: '0.75rem', color: '#d1d5db', whiteSpace: 'normal', maxWidth: '400px', display: 'block' }}>
       {String(val)}

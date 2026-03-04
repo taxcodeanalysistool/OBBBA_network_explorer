@@ -9,7 +9,7 @@ import { WelcomeModal } from './components/WelcomeModal';
 import TableView from './components/TableView';
 import { NetworkBuilder } from './services/networkBuilder';
 import DocumentModal from './components/DocumentModal';
-import { fetchRelationships, fetchActorRelationships, fetchActorCounts } from './api';
+import { fetchRelationships, fetchActorRelationships, fetchActorCounts, fetchNodeDetails } from './api';
 import type {
   Stats,
   Relationship,
@@ -27,6 +27,8 @@ function App() {
   const [viewMode, setViewMode] = useState<'graph' | 'table'>('graph');
   const [timeScope, setTimeScope] = useState<TimeScope>('pre-OBBBA');
   const [openDocId, setOpenDocId] = useState<string | null>(null);
+  const [openDocIndex, setOpenDocIndex] = useState<number | null>(null);
+  const [selectedNodeDisplayLabel, setSelectedNodeDisplayLabel] = useState<string | null>(null);
   const [fullGraph, setFullGraph] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({
     nodes: [],
     links: [],
@@ -44,6 +46,17 @@ function App() {
 
     return { nodes, links };
   }, [fullGraph, timeScope]);
+
+const getOtherNodeId = (rel: any, selectedId: string): string => {
+  // Strip "index:" prefix for comparison since rels don't have it
+  const strippedSelectedId = selectedId.replace(/^index:/, '');
+  const actorId = String(rel.actor ?? rel.source_id ?? rel.source ?? '');
+  const targetId = String(rel.target ?? rel.target_id ?? '');
+  const otherId = actorId === strippedSelectedId ? targetId : actorId;
+  // Re-add "index:" prefix to match the format used by openDocId
+  return otherId ? `index:${otherId}` : '';
+};
+
 
 const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
   links.map((l) => ({
@@ -93,6 +106,10 @@ const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
   const [highlightChangedNodes, setHighlightChangedNodes] = useState(false);
   const [enabledChangeTypes, setEnabledChangeTypes] = useState<Set<string>>(new Set());
   const [selectedBills, setSelectedBills] = useState<Set<string>>(new Set());
+  const [graphMetricsFilter, setGraphMetricsFilter] = useState<{
+    degree: number; pagerank: number; betweenness: number; eigenvector: number;
+  }>({ degree: 0, pagerank: 0, betweenness: 0, eigenvector: 0, closeness: 0, harmonic: 0 });
+
   const [yearRange] = useState<[number, number]>([1980, 2025]);
   const [includeUndated] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<number>(26);
@@ -137,7 +154,20 @@ const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
 
   const isSelectedInScope = !!selectedNode && selectedNode.scope === timeScope;
 
-  const rightSidebarRelationships = isSelectedInScope ? actorRelationships : [];
+const navRelationships = useMemo(() => {
+  if (!selectedNodeId) return actorRelationships; // ← guard
+  
+  return actorRelationships.filter(rel => {
+    const actorId = String(rel.actor_id ?? rel.actor ?? '');
+    const targetId = String(rel.target_id ?? rel.target ?? '');
+    const strippedSelectedId = selectedNodeId.replace('index:', '');
+    const strippedActorId = actorId.replace('index:', '');
+    const otherId = strippedActorId === strippedSelectedId ? targetId : actorId;
+    return !otherId.startsWith('term:');
+  });
+}, [actorRelationships, selectedNodeId]);
+
+  const rightSidebarRelationships = isSelectedInScope ? navRelationships : [];
   const rightSidebarTotal = isSelectedInScope ? actorTotalBeforeFilter : 0;
 
   const convertGraphToRelationships = useCallback(
@@ -239,6 +269,36 @@ const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
     },
     [showOnlyChangedNodes, enabledChangeTypes, selectedBills]
   );
+
+const applyMetricsFilter = useCallback((nodes: GraphNode[]) => {
+  const { degree, pagerank, betweenness, eigenvector, closeness, harmonic } = graphMetricsFilter;
+  const isActive = degree > 0 || pagerank > 0 || betweenness > 0 ||
+                   eigenvector > 0 || closeness > 0.128 || harmonic > 0.130;
+  if (!isActive) return nodes;
+  return nodes.filter(node => {
+    const m = node.graph_measures;
+    if (!m) return false;
+    return (
+      (m.degree      ?? 0) >= degree &&
+      (m.pagerank    ?? 0) >= pagerank &&
+      (m.betweenness ?? 0) >= betweenness &&
+      (m.eigenvector ?? 0) >= eigenvector &&
+      (m.closeness   ?? 0) >= closeness &&
+      (m.harmonic    ?? 0) >= harmonic
+    );
+  });
+}, [graphMetricsFilter]);
+
+
+const filteredRelationships = useMemo(() => {
+  if (buildMode !== 'topDown') return relationships;
+  const allowedIds = new Set(
+    applyMetricsFilter(applyBillChangeFilters(scopedFullGraph.nodes)).map(n => n.id)
+  );
+  return relationships.filter(r =>
+    allowedIds.has(r.actor_id ?? '') && allowedIds.has(r.target_id ?? '')
+  );
+}, [relationships, buildMode, applyMetricsFilter, applyBillChangeFilters, scopedFullGraph.nodes]);
 
   const executeBottomUpSearch = useCallback(
     async (
@@ -583,7 +643,7 @@ const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
   const loadData = async () => {
     try {
       setLoading(true);
-      const clusterIds = Array.from(enabledClusterIds);
+      const clusterIds = Array.from(enabledClusterIds); 
       const categories = Array.from(enabledCategories);
 
       const [relationshipsResponse, actorCounts] = await Promise.all([
@@ -817,6 +877,9 @@ const switchTimeScope = useCallback(
     const id = selectedNode?.id ?? null;
     const isOutOfScope = !!selectedNode && selectedNode.scope !== timeScope;
 
+    const clusterIds = Array.from(enabledClusterIds);
+    const categories = Array.from(enabledCategories);
+
     if (!id || isOutOfScope) {
       if (!isSwitchingScope) {
         setActorRelationships([]);
@@ -825,51 +888,67 @@ const switchTimeScope = useCallback(
       return;
     }
 
-    if (buildMode === 'topDown') {
-      const loadNodeRelationships = async () => {
-        try {
-          const clusterIds = Array.from(enabledClusterIds);
-          const categories = Array.from(enabledCategories);
-
-          const response = await fetchActorRelationships(
-            id,
-            clusterIds,
-            categories,
-            yearRange,
-            includeUndated,
-            keywords,
-            maxHops,
-            timeScope
-          );
-
-          setActorRelationships(response.relationships);
-          setActorTotalBeforeFilter(response.totalBeforeFilter);
-        } catch (error) {
-          console.error('Error loading node relationships:', error);
-          if (!isSwitchingScope) {
-            setActorRelationships([]);
-            setActorTotalBeforeFilter(0);
-          }
-        }
-      };
-
-      loadNodeRelationships();
-    } else {
-      const relatedLinks = displayGraph.links.filter((link) => {
-        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-        return sourceId === id || targetId === id;
-      });
-
-      const rels = convertGraphToRelationships(displayGraph.nodes, relatedLinks);
-      setActorRelationships(rels);
-      setActorTotalBeforeFilter(rels.length);
+if (buildMode === 'topDown') {
+  const loadNodeRelationships = async () => {
+    try {
+      const response = await fetchActorRelationships(id, clusterIds, categories, yearRange, includeUndated, keywords, maxHops, timeScope);
+      let filtered = response.relationships;
+if (enabledNodeTypes.size > 0 && enabledNodeTypes.size < 3) {
+  filtered = filtered.filter(rel => {
+    const actorType = rel.actor_type;
+    const targetType = rel.target_type;
+    return actorType && enabledNodeTypes.has(actorType) &&
+           targetType && enabledNodeTypes.has(targetType);
+  });
+}
+      setActorRelationships(response.relationships);
+      setActorTotalBeforeFilter(response.totalBeforeFilter);
+    } catch (error) {
+      console.error('Error loading node relationships', error);
+      if (!isSwitchingScope) {
+        setActorRelationships([]);
+        setActorTotalBeforeFilter(0);
+      }
     }
+
+    try {
+      const details = await fetchNodeDetails(id, timeScope);
+      const label = details?.display_label
+        ? details.display_label.replace(/^\[26 U\.S\.C\.\s*/, '').replace(/\]$/, '').trim()
+        : id;
+      setSelectedNodeDisplayLabel(label);
+      console.log('selectedNodeDisplayLabel set to:', label);
+    } catch (err) {
+      console.error('Error fetching display label', err);
+    }
+  };
+
+  loadNodeRelationships();
+
+} else {
+  const relatedLinks = displayGraph.links.filter(link => {
+    const sourceId = typeof link.source === 'string' ? link.source : (link.source as any).id;
+    const targetId = typeof link.target === 'string' ? link.target : (link.target as any).id;
+    return sourceId === id || targetId === id;
+  });
+  const rels = convertGraphToRelationships(displayGraph.nodes, relatedLinks);
+  setActorRelationships(rels);
+  setActorTotalBeforeFilter(rels.length);
+
+  fetchNodeDetails(id, timeScope).then(details => {
+    const label = details?.display_label
+      ? details.display_label.replace(/^\[26 U\.S\.C\.\s*/, '').replace(/\]$/, '').trim()
+      : id;
+    setSelectedNodeDisplayLabel(label);
+  });
+}
+
   }, [
     buildMode,
     selectedNode,
     enabledClusterIds,
     enabledCategories,
+    enabledNodeTypes,
     yearRange,
     includeUndated,
     keywords,
@@ -1030,6 +1109,8 @@ const switchTimeScope = useCallback(
             graphData={buildMode === 'topDown' ? scopedFullGraph : displayGraph}
             svgElement={svgElement}
             searchTerm={bottomUpSearchKeywords || undefined}
+            graphMetricsFilter={graphMetricsFilter}
+            onGraphMetricsFilterChange={setGraphMetricsFilter}
           />
         </div>
 
@@ -1072,9 +1153,7 @@ const switchTimeScope = useCallback(
   </div>
 ) : viewMode === 'table' ? (
   <TableView
-      nodes={applyBillChangeFilters(
-    buildMode === 'bottomUp' ? displayGraph.nodes : scopedFullGraph.nodes
-  )}
+      nodes={applyMetricsFilter(applyBillChangeFilters(buildMode === 'bottomUp' ? displayGraph.nodes : scopedFullGraph.nodes))}
     links={buildMode === 'bottomUp' ? displayGraph.links : scopedFullGraph.links}
     timeScope={timeScope}
     onNodeClick={handleNodeClick}
@@ -1085,13 +1164,14 @@ const switchTimeScope = useCallback(
     key={`${selectedTitle}::${buildMode}::${timeScope}`}
     graphData={buildMode === 'bottomUp' ? {
       ...displayGraph,
+      nodes: applyMetricsFilter(applyBillChangeFilters(displayGraph.nodes)),
       links: displayGraph.links.map((l) => ({
         ...l,
         source: typeof l.source === 'string' ? l.source : (l.source as any).id,
         target: typeof l.target === 'string' ? l.target : (l.target as any).id,
       })),
     } : undefined}
-    relationships={buildMode === 'topDown' ? relationships : undefined}
+    relationships={buildMode === 'topDown' ? filteredRelationships : undefined}
     selectedNode={selectedNode}
     onNodeClick={handleNodeClick}
     minDensity={minDensity}
@@ -1102,7 +1182,7 @@ const switchTimeScope = useCallback(
     highlightChangedNodes={highlightChangedNodes}
     enabledChangeTypes={enabledChangeTypes}
     selectedBills={selectedBills}
-    nodeMetadata={scopedFullGraph.nodes}
+    nodeMetadata={applyMetricsFilter(applyBillChangeFilters(scopedFullGraph.nodes))} 
   />
 )}
 
@@ -1119,7 +1199,29 @@ const switchTimeScope = useCallback(
               keywords={buildMode === 'bottomUp' ? bottomUpSearchKeywords : keywords}
               timeScope={timeScope}
               onTimeScopeChange={switchTimeScope}
-              onViewFullText={(docId) => setOpenDocId(docId)}
+onViewFullText={(docId) => {
+  const strDocId = String(docId);
+  const strippedDocId = strDocId.replace(/^index:/, '');
+  const strippedSelectedId = selectedNodeId!.replace(/^index:/, '');
+
+  // If clicking the selected node itself, use index -1 as sentinel
+  if (strippedDocId === strippedSelectedId) {
+    setOpenDocId(strDocId);
+    setOpenDocIndex(-1);
+    return;
+  }
+
+  const idx = navRelationships.findIndex(rel => {
+    const actor = String(rel.actor ?? '');
+    const target = String(rel.target ?? '');
+    const otherId = actor === strippedSelectedId ? target : actor;
+    return otherId === strippedDocId;
+  });
+  setOpenDocId(strDocId);
+  setOpenDocIndex(idx >= 0 ? idx : 0);
+}}
+
+
             />
           )}
         </div>
@@ -1149,17 +1251,44 @@ const switchTimeScope = useCallback(
 
       <WelcomeModal isOpen={showWelcome} onClose={handleCloseWelcome} />
 
-      {openDocId && (
-        <DocumentModal
-          docId={openDocId}
-          highlightTerm={selectedNodeId}
-          secondaryHighlightTerm={null}
-          searchKeywords={buildMode === 'bottomUp' ? bottomUpSearchKeywords : keywords}
-          timeScope={timeScope}
-          onTimeScopeChange={switchTimeScope}
-          onClose={() => setOpenDocId(null)}
-        />
-      )}
+{openDocId && (
+  <DocumentModal
+    docId={openDocId}
+    highlightTerm={openDocIndex === -1 ? null : selectedNodeDisplayLabel}
+secondaryHighlightTerm={null}
+    secondaryHighlightTerm={null}
+    searchKeywords={buildMode === 'bottomUp' ? bottomUpSearchKeywords : keywords}
+    timeScope={timeScope}
+    onTimeScopeChange={switchTimeScope}
+    onClose={() => { setOpenDocId(null); setOpenDocIndex(null); }}
+    currentIndex={openDocIndex ?? undefined}
+    totalCount={openDocIndex !== null ? navRelationships.length : undefined}
+onPrev={openDocIndex !== null && openDocIndex > 0 ? () => {
+  const prevIdx = openDocIndex - 1;
+  const rel = navRelationships[prevIdx];
+  const id = getOtherNodeId(rel, selectedNodeId!);
+  if (!id) return;
+  setOpenDocId(id);
+  setOpenDocIndex(prevIdx);
+} : openDocIndex === 0 ? () => {
+  // Going back from index 0 returns to the selected node itself
+  setOpenDocId(`index:${selectedNodeId!.replace(/^index:/, '')}`);
+  setOpenDocIndex(-1);
+} : undefined}
+
+onNext={openDocIndex !== null && (openDocIndex === -1 || openDocIndex < navRelationships.length - 1) ? () => {
+  const nextIdx = openDocIndex === -1 ? 0 : openDocIndex + 1;
+  const rel = navRelationships[nextIdx];
+  const id = getOtherNodeId(rel, selectedNodeId!);
+  if (!id) return;
+  setOpenDocId(id);
+  setOpenDocIndex(nextIdx);
+} : undefined}
+
+
+
+  />
+)}
     </>
   );
 }

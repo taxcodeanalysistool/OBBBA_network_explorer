@@ -140,6 +140,7 @@ export async function loadGraph(title: number): Promise<GraphData> {
       change_types: n.change_types,
       affected_bills: n.affected_bills,
       change_count: n.change_count,
+      graph_measures: n.graph_measures ?? {},
     };
   });
 
@@ -239,11 +240,15 @@ export async function fetchActorRelationships(
     cachedGraph!.nodes.map((n) => [scopedKey(n.time as TimeScope, String(n.id)), n] as const)
   );
 
-  const relatedLinks = cachedGraph!.links.filter((link) => {
+  let relatedLinks = cachedGraph!.links.filter((link) => {
     const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
     const targetId = typeof link.target === 'string' ? link.target : link.target.id;
     return link.time === timeScope && (sourceId === actorNode.id || targetId === actorNode.id);
   });
+
+  if (categories.length > 0) {
+  relatedLinks = relatedLinks.filter((link) => categories.includes(link.edge_type));
+}
 
   const relationships: Relationship[] = relatedLinks.map((link, idx) => {
     const sourceId = typeof link.source === 'string' ? link.source : link.source.id;

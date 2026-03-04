@@ -39,6 +39,9 @@ interface SidebarProps {
   availableChangeTypes?: string[];
   availableBills?: string[];
 
+  graphMetricsFilter?: { degree: number; pagerank: number; betweenness: number; eigenvector: number; };
+  onGraphMetricsFilterChange?: (f: { degree: number; pagerank: number; betweenness: number; eigenvector: number; }) => void;
+
   yearRange: [number, number];
   onYearRangeChange: (range: [number, number]) => void;
   includeUndated: boolean;
@@ -168,6 +171,8 @@ export default function Sidebar({
   onToggleSelectedBill,
   availableChangeTypes = [],
   availableBills = [],
+  graphMetricsFilter = { degree: 0, pagerank: 0, betweenness: 0, eigenvector: 0 },
+onGraphMetricsFilterChange,
 
   buildMode,
   timeScope,
@@ -188,6 +193,7 @@ export default function Sidebar({
   const [graphSettingsExpanded, setGraphSettingsExpanded] = useState(true);
   const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [billChangesExpanded, setBillChangesExpanded] = useState(false);
+  const [metricsExpanded, setMetricsExpanded] = useState(false);
   const [exportExpanded, setExportExpanded] = useState(false);
   const [localLimit, setLocalLimit] = useState(limit);
   const [localKeywords, setLocalKeywords] = useState('');
@@ -738,6 +744,67 @@ export default function Sidebar({
             </>
           )}
         </div>
+
+        {/* Network Metrics Filter */}
+<div className="p-4 border-b border-gray-700">
+  <button
+    onClick={() => setMetricsExpanded(!metricsExpanded)}
+    className="w-full flex items-center justify-between text-base font-semibold mb-3 text-white hover:text-blue-400 transition-colors"
+  >
+    <span>Network metrics</span>
+    <span className="text-sm">{metricsExpanded ? '▼' : '▶'}</span>
+  </button>
+
+  {metricsExpanded && (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs text-gray-500">Filter nodes by minimum metric value</p>
+        {Object.values(graphMetricsFilter).some(v => v > 0) && (
+          <button
+            onClick={() => onGraphMetricsFilterChange?.({ degree: 0, pagerank: 0, betweenness: 0, eigenvector: 0 })}
+            className="text-xs text-blue-400 hover:text-blue-300"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {([
+  { key: 'degree',      label: 'Degree',      min: 0,      max: 0.005,  step: 0.00001,  decimals: 5 },
+  { key: 'pagerank',    label: 'PageRank',    min: 0,      max: 0.001, step: 0.00001, decimals: 5 },
+  { key: 'betweenness', label: 'Betweenness', min: 0,      max: 0.01,  step: 0.0001,  decimals: 5 },
+  { key: 'eigenvector', label: 'Eigenvector', min: 0,      max: 0.03,  step: 0.001,  decimals: 4 },
+  { key: 'closeness',   label: 'Closeness',   min: 0,  max: 0.32,  step: 0.001,  decimals: 4 },
+  { key: 'harmonic',    label: 'Harmonic',    min: 0,  max: 0.49,  step: 0.001,  decimals: 4 },
+] as const).map(({ key, label, min, max, step, decimals }) => (
+  <div key={key} className="mb-4">
+    <div className="flex justify-between text-sm text-gray-400 mb-1">
+      <span>{label}</span>
+      <span className="font-mono text-xs">
+        {graphMetricsFilter[key] > (key === 'closeness' || key === 'harmonic' ? min : 0)
+          ? `≥ ${graphMetricsFilter[key].toFixed(decimals)}`
+          : 'off'}
+      </span>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={graphMetricsFilter[key]}
+      onChange={e => onGraphMetricsFilterChange?.({
+        ...graphMetricsFilter,
+        [key]: parseFloat(e.target.value),
+      })}
+      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+    />
+  </div>
+))}
+
+    </div>
+  )}
+</div>
+
 
         {/* Node filters */}
         {stats && (

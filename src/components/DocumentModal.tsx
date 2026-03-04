@@ -13,6 +13,10 @@ interface DocumentModalProps {
   timeScope: 'pre-OBBBA' | 'post-OBBBA';
   onTimeScopeChange: (scope: 'pre-OBBBA' | 'post-OBBBA') => void;
   onClose: () => void;
+  onNext?: () => void;
+  onPrev?: () => void;
+  currentIndex?: number;
+  totalCount?: number;
 }
 
 interface MatchPosition {
@@ -22,7 +26,7 @@ interface MatchPosition {
   percentage: number;
 }
 
-type ViewMode = 'original' | 'track-changes' | 'final';
+type ViewMode = 'original' | 'track-changes' | 'new';
 
 const COMMON_WORDS = new Set([
   'the', 'and', 'or', 'to', 'from', 'in', 'on', 'at', 'by', 'for', 'with',
@@ -40,6 +44,10 @@ export default function DocumentModal({
   timeScope,
   onTimeScopeChange,
   onClose,
+  onNext,
+  onPrev,
+  currentIndex,
+  totalCount,
 }: DocumentModalProps) {
   const [document, setDocument] = useState<Document | null>(null);
   const [documentText, setDocumentText] = useState<string>('');
@@ -54,9 +62,11 @@ export default function DocumentModal({
   const matchRefs = useRef<Map<number, HTMLElement>>(new Map());
 
   // Extract section number from display_label e.g. "[26 U.S.C. 1(d)]" → "1(d)"
-  const extractedHighlight = nodeDetails?.display_label
+const extractedHighlight = highlightTerm
+  ? highlightTerm  // ✅ use what was passed in
+  : nodeDetails?.display_label
     ? nodeDetails.display_label.replace(/^\[26 U\.S\.C\.\s*/, '').replace(/\]$/, '').trim()
-    : highlightTerm;
+    : null;
 
   // Load both pre and post text whenever docId changes
   useEffect(() => {
@@ -319,7 +329,7 @@ export default function DocumentModal({
   // Text to display based on viewMode
   const displayText =
     viewMode === 'original' ? preText || documentText :
-    viewMode === 'final'    ? postText || documentText :
+    viewMode === 'new'    ? postText || documentText :
     documentText;
 
   return (
@@ -390,12 +400,12 @@ export default function DocumentModal({
             {hasDiff && (
               <div className="flex rounded-lg overflow-hidden border border-gray-600 text-xs">
                 <button
-                  onClick={() => setViewMode('final')}
+                  onClick={() => setViewMode('new')}
                   className={`px-3 py-1.5 font-medium transition-colors ${
-                    viewMode === 'final' ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'
+                    viewMode === 'new' ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'
                   }`}
                 >
-                  Final
+                  New
                 </button>
                 <button
                   onClick={() => setViewMode('track-changes')}
@@ -503,7 +513,7 @@ export default function DocumentModal({
               <span><span className="inline-block bg-green-300 text-black font-semibold px-2 py-0.5 rounded text-xs mr-1">Search keywords</span></span>
             )}
             {highlightTerm && (
-              <span><span className="inline-block bg-yellow-400 text-black px-2 py-0.5 rounded text-xs mr-1">{nodeDetails?.display_label || highlightTerm}</span></span>
+              <span><span className="inline-block bg-yellow-400 text-black px-2 py-0.5 rounded text-xs mr-1">{highlightTerm}</span></span>
             )}
             {secondaryHighlightTerm && (
               <span><span className="inline-block bg-orange-300 text-black px-2 py-0.5 rounded text-xs mr-1">{secondaryHighlightTerm}</span></span>
@@ -515,10 +525,38 @@ export default function DocumentModal({
               </span>
             )}
           </div>
-          <button onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors">
-            Close
-          </button>
+
+          <div className="flex items-center gap-2">
+            {(onPrev || onNext) && (
+              <div className="flex items-center gap-2 mr-4">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
+                  disabled={!onPrev}
+                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                >
+                  ← Prev
+                </button>
+                {currentIndex !== undefined && totalCount !== undefined && (
+  <span className="text-xs text-gray-400 min-w-[60px] text-center">
+    {currentIndex === -1 ? `★ / ${totalCount}` : `${currentIndex + 1} / ${totalCount}`}
+  </span>
+)}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onNext?.(); }}
+                  disabled={!onNext}
+                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

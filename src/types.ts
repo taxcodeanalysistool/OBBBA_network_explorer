@@ -39,6 +39,16 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   affected_bills?: string[];
   change_count?: number;
 
+    graph_measures?: {
+    degree?: number;
+    eigenvector?: number;
+    betweenness?: number;
+    closeness?: number;
+    subgraph?: number;
+    pagerank?: number;
+    harmonic?: number;
+  };
+
   // Hierarchy fields (parsed from node name)
   title?: string | null;
   subtitle?: string | null;

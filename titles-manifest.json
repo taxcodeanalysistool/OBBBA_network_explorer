@@ -2,24 +2,9 @@
   "version": 1,
   "titles": [
     {
-      "id": "01",
-      "kind": "single",
-      "file": "title-01.json"
-    },
-    {
-      "id": "02",
-      "kind": "single",
-      "file": "title-02.json"
-    },
-    {
       "id": "05",
       "kind": "single",
       "file": "title-05.json"
-    },
-    {
-      "id": "06",
-      "kind": "single",
-      "file": "title-06.json"
     },
     {
       "id": "07",
@@ -35,11 +20,6 @@
       "id": "10",
       "kind": "single",
       "file": "title-10.json"
-    },
-    {
-      "id": "11",
-      "kind": "single",
-      "file": "title-11.json"
     },
     {
       "id": "12",
@@ -62,11 +42,6 @@
       "file": "title-16.json"
     },
     {
-      "id": "18",
-      "kind": "single",
-      "file": "title-18.json"
-    },
-    {
       "id": "19",
       "kind": "single",
       "file": "title-19.json"
@@ -77,11 +52,6 @@
       "file": "title-20.json"
     },
     {
-      "id": "21",
-      "kind": "single",
-      "file": "title-21.json"
-    },
-    {
       "id": "22",
       "kind": "single",
       "file": "title-22.json"
@@ -90,11 +60,6 @@
       "id": "26",
       "kind": "single",
       "file": "title-26.json"
-    },
-    {
-      "id": "29",
-      "kind": "single",
-      "file": "title-29.json"
     },
     {
       "id": "30",
@@ -110,11 +75,6 @@
       "id": "34",
       "kind": "single",
       "file": "title-34.json"
-    },
-    {
-      "id": "38",
-      "kind": "single",
-      "file": "title-38.json"
     },
     {
       "id": "42",
@@ -137,19 +97,9 @@
       "file": "title-49.json"
     },
     {
-      "id": "50",
-      "kind": "single",
-      "file": "title-50.json"
-    },
-    {
       "id": "51",
       "kind": "single",
       "file": "title-51.json"
-    },
-    {
-      "id": "54",
-      "kind": "single",
-      "file": "title-54.json"
     }
   ]
 }

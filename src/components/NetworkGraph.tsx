@@ -169,18 +169,24 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
       const maxDegree = Math.max(...Array.from(degreeMap.values()), 1);
 
       const nodes = externalGraphData.nodes.map((node) => {
-        const degree = degreeMap.get(node.id) || 1;
-        const t = degree / maxDegree;
+  const degree = degreeMap.get(node.id) || 1;
+  const t = degree / maxDegree;
 
-        let color = baseColorForType(node.node_type);
-        if (node.node_type === 'section' || node.node_type === 'index') {
-          color = sectionColorScale(t);
-        } else if (node.node_type === 'entity' || node.node_type === 'concept') {
-          color = entityConceptColorScale(t);
-        }
+  let color = baseColorForType(node.node_type);
+  if (node.node_type === 'section' || node.node_type === 'index') {
+    color = sectionColorScale(t);
+  } else if (node.node_type === 'entity' || node.node_type === 'concept') {
+    color = entityConceptColorScale(t);
+  }
 
         return {
           ...node,
+    x: undefined,
+    y: undefined,
+    vx: undefined,
+    vy: undefined,
+    fx: null,
+    fy: null,
           val: degree,
           color,
           baseColor: color,
@@ -432,8 +438,7 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
       .style('cursor', 'pointer')
       .on('click', (event, d) => {
         event.stopPropagation();
-        const next = selectedNodeId === d.id ? null : d.id;
-        onNodeClick(next);
+        onNodeClick(d.id);
       });
 
     node
@@ -449,7 +454,7 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
       .attr('text-anchor', 'middle')
       .attr('fill', '#fff')
       .attr('font-size', '5px')
-      .attr('font-weight', (d) => (d.id === selectedNodeId ? 'bold' : 'normal'))
+      .attr('font-weight', 'normal')
       .style('pointer-events', 'none')
       .style('user-select', 'none');
 
@@ -546,10 +551,11 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
       simulation.stop();
       tooltip.remove();
     };
-  }, [graphData, selectedNodeId, onNodeClick, timeScope, actorTotalCounts, shouldHighlightNode]);
+  }, [graphData, onNodeClick, timeScope, actorTotalCounts, shouldHighlightNode]);
 
   useEffect(() => {
     if (!nodeGroupRef.current || !linkGroupRef.current) return;
+    if (!graphData.nodes.length) return;  // ← add this
 
     nodeGroupRef.current
       .selectAll('circle')
@@ -584,7 +590,7 @@ const NetworkGraph = forwardRef<NetworkGraphHandle, NetworkGraphProps>(function 
         }
         return 0.6;
       });
-  }, [selectedNodeId, shouldHighlightNode]);
+  }, [selectedNodeId, shouldHighlightNode, graphData]);
 
   return (
     <div className="relative w-full h-full">

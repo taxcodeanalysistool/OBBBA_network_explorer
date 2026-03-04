@@ -45,6 +45,13 @@ function App() {
     return { nodes, links };
   }, [fullGraph, timeScope]);
 
+const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
+  links.map((l) => ({
+    ...l,
+    source: typeof l.source === 'string' ? l.source : (l.source as any).id,
+    target: typeof l.target === 'string' ? l.target : (l.target as any).id,
+  }));
+
   const [builder, setBuilder] = useState<NetworkBuilder | null>(null);
   const [displayGraph, setDisplayGraph] = useState<FilteredGraph>({
     nodes: [],
@@ -125,7 +132,8 @@ function App() {
     selectedBills: new Set<string>()
   });
 
-  const selectedNodeId = selectedNode?.id ?? null;
+  const selectedNodeId =
+  selectedNode && selectedNode.scope === timeScope ? selectedNode.id : null;
 
   const isSelectedInScope = !!selectedNode && selectedNode.scope === timeScope;
 
@@ -360,7 +368,11 @@ function App() {
 
         setDisplayGraph({
           nodes: finalNodes,
-          links: finalLinks,
+  links: finalLinks.map((l) => ({
+    ...l,
+    source: typeof l.source === 'string' ? l.source : (l.source as any).id,
+    target: typeof l.target === 'string' ? l.target : (l.target as any).id,
+  })),
           truncated: filtered.truncated || linksTruncated || nodesWereCapped,
           matchedCount: filtered.matchedCount,
         });
@@ -432,7 +444,11 @@ function App() {
 
       setDisplayGraph({
         nodes: finalNodes,
-        links: finalLinks,
+  links: finalLinks.map((l) => ({
+    ...l,
+    source: typeof l.source === 'string' ? l.source : (l.source as any).id,
+    target: typeof l.target === 'string' ? l.target : (l.target as any).id,
+  })),
         truncated: nodesWereCapped || linksWereCapped,
         matchedCount: finalNodes.length,
       });
@@ -714,8 +730,6 @@ const switchTimeScope = useCallback(
 
     // Clear bill change filters when switching to Pre-OBBBA (no changes exist there)
     if (next === 'pre-OBBBA') {
-      setShowOnlyChangedNodes(false);
-      setHighlightChangedNodes(false);
       setEnabledChangeTypes(new Set());
       setSelectedBills(new Set());
     }
@@ -1058,7 +1072,9 @@ const switchTimeScope = useCallback(
   </div>
 ) : viewMode === 'table' ? (
   <TableView
-    nodes={buildMode === 'bottomUp' ? displayGraph.nodes : scopedFullGraph.nodes}
+      nodes={applyBillChangeFilters(
+    buildMode === 'bottomUp' ? displayGraph.nodes : scopedFullGraph.nodes
+  )}
     links={buildMode === 'bottomUp' ? displayGraph.links : scopedFullGraph.links}
     timeScope={timeScope}
     onNodeClick={handleNodeClick}
@@ -1067,7 +1083,14 @@ const switchTimeScope = useCallback(
   <NetworkGraph
     ref={networkGraphRef}
     key={`${selectedTitle}::${buildMode}::${timeScope}`}
-    graphData={buildMode === 'bottomUp' ? displayGraph : undefined}
+    graphData={buildMode === 'bottomUp' ? {
+      ...displayGraph,
+      links: displayGraph.links.map((l) => ({
+        ...l,
+        source: typeof l.source === 'string' ? l.source : (l.source as any).id,
+        target: typeof l.target === 'string' ? l.target : (l.target as any).id,
+      })),
+    } : undefined}
     relationships={buildMode === 'topDown' ? relationships : undefined}
     selectedNode={selectedNode}
     onNodeClick={handleNodeClick}

@@ -144,10 +144,11 @@ const normalizeLinks = (links: GraphLink[]): GraphLink[] =>
   const bottomUpRunIdRef = useRef(0);
 
   const prevBillFiltersRef = useRef({
-    showOnlyChangedNodes: false,
-    enabledChangeTypes: new Set<string>(),
-    selectedBills: new Set<string>()
-  });
+  showOnlyChangedNodes: false,
+  enabledChangeTypes: new Set<string>(),
+  selectedBills: new Set<string>(),
+  enabledCategories: new Set<string>(['reference']), // ✅
+});
 
   const selectedNodeId =
   selectedNode && selectedNode.scope === timeScope ? selectedNode.id : null;
@@ -463,17 +464,19 @@ const filteredRelationships = useMemo(() => {
     const hasSearch = bottomUpSearchKeywords.trim().length > 0;
 
     // Check if bill filters changed (for active searches)
-    const billFiltersChanged = 
-      prevBillFiltersRef.current.showOnlyChangedNodes !== showOnlyChangedNodes ||
-      prevBillFiltersRef.current.enabledChangeTypes !== enabledChangeTypes ||
-      prevBillFiltersRef.current.selectedBills !== selectedBills;
+const billFiltersChanged =
+  prevBillFiltersRef.current.showOnlyChangedNodes !== showOnlyChangedNodes ||
+  prevBillFiltersRef.current.enabledChangeTypes !== enabledChangeTypes ||
+  prevBillFiltersRef.current.selectedBills !== selectedBills ||
+  prevBillFiltersRef.current.enabledCategories !== enabledCategories;
 
     // Update ref
     prevBillFiltersRef.current = {
-      showOnlyChangedNodes,
-      enabledChangeTypes,
-      selectedBills
-    };
+  showOnlyChangedNodes,
+  enabledChangeTypes,
+  selectedBills,
+  enabledCategories, // ✅
+};
 
     if (!hasSearch) {
       // No search active: show a capped scoped graph (respect maxHops + limit)
@@ -492,11 +495,12 @@ const filteredRelationships = useMemo(() => {
       const billFilteredNodeIds = new Set(finalNodes.map((n) => n.id));
 
       // Step 3: Filter links to match bill-filtered nodes
-      let workingLinks = scopedFullGraph.links.filter((l) => {
-        const s = typeof l.source === 'string' ? l.source : l.source.id;
-        const t = typeof l.target === 'string' ? l.target : l.target.id;
-        return billFilteredNodeIds.has(s) && billFilteredNodeIds.has(t);
-      });
+      let workingLinks = scopedFullGraph.links.filter(l => {
+  const s = typeof l.source === 'string' ? l.source : l.source.id;
+  const t = typeof l.target === 'string' ? l.target : l.target.id;
+  const categoryOk = enabledCategories.size === 0 || enabledCategories.has(l.edge_type);  // ✅
+  return categoryOk && billFilteredNodeIds.has(s) && billFilteredNodeIds.has(t);
+});
 
       // Step 4: Apply relationship limit
       let finalLinks = workingLinks;
@@ -553,6 +557,7 @@ const filteredRelationships = useMemo(() => {
     showOnlyChangedNodes,
     enabledChangeTypes,
     selectedBills,
+    enabledCategories
   ]);
 
   useEffect(() => {

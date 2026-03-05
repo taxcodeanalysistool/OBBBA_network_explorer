@@ -1263,7 +1263,6 @@ onViewFullText={(docId) => {
   <DocumentModal
     docId={openDocId}
     highlightTerm={openDocIndex === -1 ? null : selectedNodeDisplayLabel}
-secondaryHighlightTerm={null}
     secondaryHighlightTerm={null}
     searchKeywords={buildMode === 'bottomUp' ? bottomUpSearchKeywords : keywords}
     timeScope={timeScope}

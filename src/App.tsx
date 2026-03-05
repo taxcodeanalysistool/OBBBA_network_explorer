@@ -301,156 +301,159 @@ const filteredRelationships = useMemo(() => {
 }, [relationships, buildMode, applyMetricsFilter, applyBillChangeFilters, scopedFullGraph.nodes]);
 
   const executeBottomUpSearch = useCallback(
-    async (
-      params: {
-        keywords: string;
-        expansionDegree: number;
-        maxNodes: number;
-        nodeTypes: string[];
-        edgeTypes: string[];
-        searchFields: string[];
-        searchLogic: 'AND' | 'OR';
-        nodeRankingMode: 'global' | 'subgraph';
-      },
-      opts?: { preservePreviousGraph?: boolean }
-    ) => {
-      if (!builder || params.searchFields.length === 0) return;
-
-      const runId = ++bottomUpRunIdRef.current;
-
-      // We want to keep the graph visible during scope flips; avoid full-screen "loading" flash.
-      if (!opts?.preservePreviousGraph) setLoading(true);
-
-      setRelationships([]);
-      setTopDownGraphInfo(null);
-
-      try {
-        const terms = params.keywords
-          .split(',')
-          .map((t) => t.trim())
-          .filter((t) => t);
-
-        const builderState: NetworkBuilderState = {
-          searchTerms: terms,
-          searchFields: params.searchFields,
-          allowedNodeTypes: params.nodeTypes as ('index' | 'entity' | 'concept')[],
-          allowedEdgeTypes: params.edgeTypes as ('definition' | 'reference' | 'hierarchy')[],
-          allowedTitles: [],
-          allowedSections: [],
-          seedNodeIds: [],
-          expansionDepth: params.expansionDegree,
-          maxNodesPerExpansion: 100,
-          maxTotalNodes: 10000,  // Set high limit so builder doesn't cap early
-        };
-
-        const filtered = builder.buildNetwork(builderState, params.searchLogic, params.nodeRankingMode);
-
-        // If another run started after this one, ignore these results.
-        if (runId !== bottomUpRunIdRef.current) return;
-
-        // Step 1: Apply bill change filters FIRST to all matched nodes
-        const billFilteredNodes = applyBillChangeFilters(filtered.nodes);
-
-        // Step 1.5: Apply maxNodes limit to the bill-filtered nodes
-        let nodesToUse = billFilteredNodes;
-        let nodesWereCapped = false;
-
-        if (maxHops !== null && billFilteredNodes.length > maxHops) {
-          // Sort by degree before slicing
-          const nodeDegreeInFullGraph = new Map<string, number>();
-          filtered.links.forEach((link) => {
-            const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-            const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-            nodeDegreeInFullGraph.set(sourceId, (nodeDegreeInFullGraph.get(sourceId) || 0) + 1);
-            nodeDegreeInFullGraph.set(targetId, (nodeDegreeInFullGraph.get(targetId) || 0) + 1);
-          });
-
-          nodesToUse = [...billFilteredNodes]
-            .sort((a, b) => {
-              const degreeA = nodeDegreeInFullGraph.get(a.id) || 0;
-              const degreeB = nodeDegreeInFullGraph.get(b.id) || 0;
-              return degreeB - degreeA;
-            })
-            .slice(0, maxHops);
-
-          nodesWereCapped = true;
-        }
-
-        const billFilteredNodeIds = new Set(nodesToUse.map(n => n.id));
-
-        // Step 2: Filter links to only include bill-filtered nodes
-        let workingLinks = filtered.links.filter(link => {
-          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-          return billFilteredNodeIds.has(sourceId) && billFilteredNodeIds.has(targetId);
-        });
-
-        // Step 3: Apply relationship limit to the bill-filtered links
-        let finalLinks = workingLinks;
-        let linksTruncated = false;
-
-        if (workingLinks.length > limit) {
-          const nodeDegrees = new Map<string, number>();
-          workingLinks.forEach((link) => {
-            const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-            const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-            nodeDegrees.set(sourceId, (nodeDegrees.get(sourceId) || 0) + 1);
-            nodeDegrees.set(targetId, (nodeDegrees.get(targetId) || 0) + 1);
-          });
-
-          finalLinks = [...workingLinks]
-            .sort((a, b) => {
-              const sourceA = typeof a.source === 'string' ? a.source : a.source.id;
-              const targetA = typeof a.target === 'string' ? a.target : a.target.id;
-              const sourceB = typeof b.source === 'string' ? b.source : b.source.id;
-              const targetB = typeof b.target === 'string' ? b.target : b.target.id;
-
-              const degreeA = (nodeDegrees.get(sourceA) || 0) + (nodeDegrees.get(targetA) || 0);
-              const degreeB = (nodeDegrees.get(sourceB) || 0) + (nodeDegrees.get(targetB) || 0);
-
-              return degreeB - degreeA;
-            })
-            .slice(0, limit);
-
-          linksTruncated = true;
-        }
-
-        // Step 4: Keep only nodes that are in the final links
-        const nodesInFinalLinks = new Set<string>();
-        finalLinks.forEach((link) => {
-          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-          nodesInFinalLinks.add(sourceId);
-          nodesInFinalLinks.add(targetId);
-        });
-
-        const finalNodes = nodesToUse.filter((n) => nodesInFinalLinks.has(n.id));
-
-        setDisplayGraph({
-          nodes: finalNodes,
-  links: finalLinks.map((l) => ({
-    ...l,
-    source: typeof l.source === 'string' ? l.source : (l.source as any).id,
-    target: typeof l.target === 'string' ? l.target : (l.target as any).id,
-  })),
-          truncated: filtered.truncated || linksTruncated || nodesWereCapped,
-          matchedCount: filtered.matchedCount,
-        });
-
-        setDisplayGraphInfo({
-          nodeCount: finalNodes.length,
-          linkCount: finalLinks.length,
-          truncated: filtered.truncated || linksTruncated || nodesWereCapped,
-          matchedCount: filtered.matchedCount,
-        });
-      } catch (error) {
-        console.error('Error building network:', error);
-      } finally {
-        if (!opts?.preservePreviousGraph) setLoading(false);
-      }
+  async (
+    params: {
+      keywords: string;
+      expansionDegree: number;
+      maxNodes: number;
+      nodeTypes: string[];
+      edgeTypes: string[];
+      searchFields: string[];
+      searchLogic: 'AND' | 'OR';
+      nodeRankingMode: 'global' | 'subgraph';
     },
-    [builder, limit, maxHops, applyBillChangeFilters]
-  );
+    opts?: { preservePreviousGraph?: boolean }
+  ) => {
+    if (!builder || params.searchFields.length === 0) return;
+
+    const runId = ++bottomUpRunIdRef.current;
+
+    if (!opts?.preservePreviousGraph) setLoading(true);
+
+    setRelationships([]);
+    setTopDownGraphInfo(null);
+
+    try {
+      const terms = params.keywords
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t);
+
+      const builderState: NetworkBuilderState = {
+        searchTerms: terms,
+        searchFields: params.searchFields,
+        allowedNodeTypes: params.nodeTypes as ('index' | 'entity' | 'concept')[],
+        allowedEdgeTypes: params.edgeTypes as ('definition' | 'reference' | 'hierarchy')[],
+        allowedTitles: [],
+        allowedSections: [],
+        seedNodeIds: [],
+        expansionDepth: params.expansionDegree,
+        maxNodesPerExpansion: 100,
+        maxTotalNodes: 10000,
+      };
+
+      const filtered = builder.buildNetwork(builderState, params.searchLogic, params.nodeRankingMode);
+
+      if (runId !== bottomUpRunIdRef.current) return;
+
+      // ✅ Step 0: Apply category filter to links first
+      const categoryFilteredLinks = enabledCategories.size > 0
+        ? filtered.links.filter(l => enabledCategories.has(l.edge_type))
+        : filtered.links;
+
+      // Step 1: Apply bill change filters to nodes
+      const billFilteredNodes = applyBillChangeFilters(filtered.nodes);
+
+      // Step 1.5: Apply maxNodes limit to the bill-filtered nodes
+      let nodesToUse = billFilteredNodes;
+      let nodesWereCapped = false;
+
+      if (maxHops !== null && billFilteredNodes.length > maxHops) {
+        const nodeDegreeInFullGraph = new Map<string, number>();
+        // ✅ Use categoryFilteredLinks for degree calculation
+        categoryFilteredLinks.forEach((link) => {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          nodeDegreeInFullGraph.set(sourceId, (nodeDegreeInFullGraph.get(sourceId) || 0) + 1);
+          nodeDegreeInFullGraph.set(targetId, (nodeDegreeInFullGraph.get(targetId) || 0) + 1);
+        });
+
+        nodesToUse = [...billFilteredNodes]
+          .sort((a, b) => {
+            const degreeA = nodeDegreeInFullGraph.get(a.id) || 0;
+            const degreeB = nodeDegreeInFullGraph.get(b.id) || 0;
+            return degreeB - degreeA;
+          })
+          .slice(0, maxHops);
+
+        nodesWereCapped = true;
+      }
+
+      const billFilteredNodeIds = new Set(nodesToUse.map(n => n.id));
+
+      // Step 2: Filter links to only include bill-filtered nodes
+      // ✅ Use categoryFilteredLinks instead of filtered.links
+      let workingLinks = categoryFilteredLinks.filter(link => {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        return billFilteredNodeIds.has(sourceId) && billFilteredNodeIds.has(targetId);
+      });
+
+      // Step 3: Apply relationship limit
+      let finalLinks = workingLinks;
+      let linksTruncated = false;
+
+      if (workingLinks.length > limit) {
+        const nodeDegrees = new Map<string, number>();
+        workingLinks.forEach((link) => {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          nodeDegrees.set(sourceId, (nodeDegrees.get(sourceId) || 0) + 1);
+          nodeDegrees.set(targetId, (nodeDegrees.get(targetId) || 0) + 1);
+        });
+
+        finalLinks = [...workingLinks]
+          .sort((a, b) => {
+            const sourceA = typeof a.source === 'string' ? a.source : a.source.id;
+            const targetA = typeof a.target === 'string' ? a.target : a.target.id;
+            const sourceB = typeof b.source === 'string' ? b.source : b.source.id;
+            const targetB = typeof b.target === 'string' ? b.target : b.target.id;
+            const degreeA = (nodeDegrees.get(sourceA) || 0) + (nodeDegrees.get(targetA) || 0);
+            const degreeB = (nodeDegrees.get(sourceB) || 0) + (nodeDegrees.get(targetB) || 0);
+            return degreeB - degreeA;
+          })
+          .slice(0, limit);
+
+        linksTruncated = true;
+      }
+
+      // Step 4: Keep only nodes that are in the final links
+      const nodesInFinalLinks = new Set<string>();
+      finalLinks.forEach((link) => {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        nodesInFinalLinks.add(sourceId);
+        nodesInFinalLinks.add(targetId);
+      });
+
+      const finalNodes = nodesToUse.filter((n) => nodesInFinalLinks.has(n.id));
+
+      setDisplayGraph({
+        nodes: finalNodes,
+        links: finalLinks.map((l) => ({
+          ...l,
+          source: typeof l.source === 'string' ? l.source : (l.source as any).id,
+          target: typeof l.target === 'string' ? l.target : (l.target as any).id,
+        })),
+        truncated: filtered.truncated || linksTruncated || nodesWereCapped,
+        matchedCount: filtered.matchedCount,
+      });
+
+      setDisplayGraphInfo({
+        nodeCount: finalNodes.length,
+        linkCount: finalLinks.length,
+        truncated: filtered.truncated || linksTruncated || nodesWereCapped,
+        matchedCount: filtered.matchedCount,
+      });
+    } catch (error) {
+      console.error('Error building network:', error);
+    } finally {
+      if (!opts?.preservePreviousGraph) setLoading(false);
+    }
+  },
+  [builder, limit, maxHops, applyBillChangeFilters, enabledCategories] // ✅ added enabledCategories
+);
+
 
   // Bottom-up: when timeScope changes AND a search is active, re-run the same stored search params in the new scope.
   // Do NOT show scopedFullGraph fallback during this; keep previous graph until rerun finishes.
